@@ -1,0 +1,60 @@
+/dts-v1/;
+/plugin/;
+/ {
+	fragment {
+		target-path = "/sopc@0/base-fpga-region";
+		#address-cells = <1>;
+		#size-cells = <1>;
+        
+		__overlay__@0 {
+			#address-cells = <2>;
+			#size-cells = <1>;
+			firmware-name = "socfpga.rbf";
+             
+			reg = <0xc0000000 0x20000000>,
+				  <0xff200000 0x00200000>;
+			reg-names = "axi_h2f", "axi_h2f_lw";
+            
+			ranges = <0x00000000 0x00000000 0xc0000000 0x20000000>,
+                     <0x00000001 0x00000000 0xff200000 0x00200000>;
+         
+		    
+
+			hmi_leds: gpio@0x100000410 {
+				compatible = "altr,pio-18.1", "altr,pio-1.0";
+				reg = <0x00000001 0x00000410 0x00000010>;
+				clocks = <&clk_0>;
+				altr,gpio-bank-width = <10>;	/* embeddedsw.dts.params.altr,gpio-bank-width type NUMBER */
+				resetvalue = <1023>;	/* embeddedsw.dts.params.resetvalue type NUMBER */
+				#gpio-cells = <2>;
+				gpio-controller;
+			}; //end gpio@0x100000410 (hmi_leds)
+
+			hmi_seven_segment: display@0x100000000 {
+				compatible = "hof,sevensegment-1.0";
+				reg = <0x00000001 0x00000000 0x00000400>;
+				clocks = <&clk_0>;
+			}; //end display@0x100000000 (hmi_seven_segment)
+
+			hmi_switches: gpio@0x100000400 {
+				compatible = "altr,pio-18.1", "altr,pio-1.0";
+				reg = <0x00000001 0x00000400 0x00000010>;
+				clocks = <&clk_0>;
+				altr,gpio-bank-width = <10>;	/* embeddedsw.dts.params.altr,gpio-bank-width type NUMBER */
+				resetvalue = <0>;	/* embeddedsw.dts.params.resetvalue type NUMBER */
+				#gpio-cells = <2>;
+				gpio-controller;
+			}; //end gpio@0x100000400 (hmi_switches)
+		
+
+			
+			/* sld_hub_controller_system_0_link: debug@0x000000000 {
+                #address-cells = <1>;
+                #size-cells = <1>;
+				compatible = "altr,altera_mm_debug_link-17.1", "altr,mm-debug-link-1.0";
+				reg = <0x00000000 0x00000000 0x00000080>;
+			}; //end debug@0x000000000 (sld_hub_controller_system_0_link)
+			*/	
+		};
+	};
+};
