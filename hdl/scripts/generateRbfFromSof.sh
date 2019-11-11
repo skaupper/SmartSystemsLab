@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
+echo "----------------- Entered file $0 ---------------------------------------------------"
+
 RBF_NAME=./output/socfpga.rbf
 
-quartus_cpf -c '../output_files/top.sof' "$RBF_NAME"
+# Convert sof to uncompressed rbf
+quartus_cpf -c '../output_files/template.sof' "$RBF_NAME"
+
+echo "----------------- Leaving file $0 ---------------------------------------------------"
