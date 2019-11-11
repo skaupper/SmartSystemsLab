@@ -1,4 +1,4 @@
-modulename := sevseg
+modulename := sevensegment
 
 obj-m += $(modulename).o
 
@@ -14,6 +14,6 @@ clean:
 	rm -rf .tmp_versions Modules.symvers
 
 deploy: all
-	scp $(modulename).ko "$(DEPLOYSSH):$(DEPLOYSSHPATH)/$(modulename).ko";\
-	ssh $(DEPLOYSSH) "rmmod $(modulename)";\
+	scp $(modulename).ko "$(DEPLOYSSH):$(DEPLOYSSHPATH)/$(modulename).ko"
+	ssh $(DEPLOYSSH) "rmmod $(modulename)";
 	ssh $(DEPLOYSSH) "insmod $(DEPLOYSSHPATH)/$(modulename).ko";
