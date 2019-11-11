@@ -2,9 +2,8 @@
 
 set -euo pipefail
 
-QSYS_DESIGN=../HPSPlatform.qsys
-
 echo "----------------- Entered file $0 ---------------------------------------------------"
+source ./defineFilenames.sh
 
 qsys-generate --synthesis=VERILOG $QSYS_DESIGN
 

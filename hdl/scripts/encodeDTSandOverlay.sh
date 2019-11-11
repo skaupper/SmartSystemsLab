@@ -3,14 +3,10 @@
 set -euo pipefail
 
 echo "----------------- Entered file $0 ---------------------------------------------------"
+source ./defineFilenames.sh
 
-DTSO_NAME=./output/socfpga.dtso
-DTBO_NAME=./output/socfpga.dtbo
-DTS_NAME=./output/socfpga.dts
-DTB_NAME=./output/socfpga.dtb
-
-dtc -I dts -O dtb -o "$DTBO_NAME" "$DTSO_NAME"
-dtc -I dts -O dtb -o "$DTB_NAME" -@ "$DTS_NAME"
+dtc -I dts -O dtb -o "$OUTPUT_DTBO" "$OUTPUT_DTSO"
+dtc -I dts -O dtb -o "$OUTPUT_DTB" -@ "$OUTPUT_DTS"
 
 # decompile cmd
 # dtc -I dtb -O dts -o "overlayDECOMPILED.dtso"  "overlay.dtbo"
