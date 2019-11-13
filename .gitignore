@@ -9,3 +9,12 @@ hdl/*
 hdl/scripts/*
 hdl/scripts/*.bat
 hdl/scripts/*.sh
+
+drivers/**/
+!drivers/**/*.c
+!drivers/**/Makefile
+
+user/**/
+!user/**/*.cpp
+!user/**/*.h
+!user/**/Makefile

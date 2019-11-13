@@ -19,21 +19,22 @@ struct IPv4Address {
     uint8_t segments[4];
 };
 
-int writeToCDev(char chars[6], uint8_t brightness) {
+int writeToCDev(char chars[], uint8_t brightness) {
+    static const int SEGMENT_COUNT = 6;
     static const std::string CHARACTER_DEVICE = "/dev/sevensegment";
 
     // prepare input values
-    uint8_t values[6];
+    uint8_t values[SEGMENT_COUNT];
     uint8_t combinedEnabled = 0;
 
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < SEGMENT_COUNT; ++i) {
         bool isValidChar = (chars[i] >= '0' && chars[i] <= '9');
-        combinedEnabled |= (((int) isValidChar) & 1) << i;
+        combinedEnabled |= (((int) isValidChar) & 1) << (SEGMENT_COUNT - i - 1);
 
         if (isValidChar) {
             values[i] = chars[i];
         } else {
-            values[i] = 0;
+            values[i] = '0';
         }
     }
 
@@ -45,7 +46,7 @@ int writeToCDev(char chars[6], uint8_t brightness) {
     }
 
     // write display values
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < SEGMENT_COUNT; ++i) {
         if (fputc(values[i], fd) == EOF) {
             std::cerr << "Failed to write character (index " << i << ")" << std::endl;
             return -1;
