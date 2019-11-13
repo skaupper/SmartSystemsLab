@@ -27,6 +27,10 @@
 #define PWM_BYTES 2
 #define BUF_SIZE (HEX_NUM + PWM_BYTES)
 
+#define MEM_OFFSET_VALUE (0x0)
+#define MEM_OFFSET_BRIGHTNESS (0x4)
+#define MEM_OFFSET_ENABLE (0x8)
+
 struct altera_sevenseg
 {
   void *regs;
@@ -44,17 +48,15 @@ static int sevenseg_read(struct file *filep, char *buf, size_t count,
   struct altera_sevenseg *sevenseg = container_of(filep->private_data,
                                                   struct altera_sevenseg, misc);
 
-  if ((*offp < 0) || (*offp >= HEX_NUM))
+  if ((*offp < 0) || (*offp >= BUF_SIZE))
     return 0;
 
-  if ((*offp + count) > HEX_NUM)
-    count = HEX_NUM - *offp;
+  if ((*offp + count) > BUF_SIZE)
+    count = BUF_SIZE - *offp;
 
   if (count > 0)
   {
-    count = count - copy_to_user(buf,
-                                 sevenseg->buffer + *offp,
-                                 count);
+    count = count - copy_to_user(buf, sevenseg->buffer + *offp, count);
 
     *offp += count;
   }
@@ -84,9 +86,16 @@ static int sevenseg_write(struct file *filep, const char *buf,
   /* write char values */
   for (i = 0; i < HEX_NUM; i += 2)
   {
+    /* combine two raw bytes into a single byte, which equals two sevenseg digits */
     u8 hex = ((sevenseg->buffer[i] - '0') << 4) | (sevenseg->buffer[i + 1] - '0');
-    iowrite8(hex, sevenseg->regs + (HEX_NUM - i - 1) / 2);
+    iowrite8(hex, sevenseg->regs + MEM_OFFSET_VALUE + (HEX_NUM - i - 1) / 2);
   }
+
+  /* write brightness value */
+  iowrite8(sevenseg->buffer[6], sevenseg->regs + MEM_OFFSET_BRIGHTNESS);
+
+  /* write enable values */
+  iowrite8(sevenseg->buffer[7], sevenseg->regs + MEM_OFFSET_ENABLE);
 
   *offp += count;
   return count;

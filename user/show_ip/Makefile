@@ -21,7 +21,6 @@ clean:
 
 deploy: all
 	scp $(APP_NAME)  $(DEPLOYSSH):$(DEPLOYSSHPATH)/$(APP_NAME)
-	ssh $(DEPLOYSSH) $(DEPLOYSSHPATH)/$(APP_NAME)
 
 
 .PHONY: all clean deploy
