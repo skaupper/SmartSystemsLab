@@ -20,8 +20,8 @@ clean:
 	rm -rf $(APP_NAME)
 
 deploy: all
-	scp $(APP_NAME)  $(DEPLOYSSH):$(DEPLOYSSHPATH)/$(APPNAME)
-	ssh $(DEPLOYSSH) $(DEPLOYSSHPATH)/$(APPNAME)
+	scp $(APP_NAME)  $(DEPLOYSSH):$(DEPLOYSSHPATH)/$(APP_NAME)
+	ssh $(DEPLOYSSH) $(DEPLOYSSHPATH)/$(APP_NAME)
 
 
-.PHONY: all clean
+.PHONY: all clean deploy
