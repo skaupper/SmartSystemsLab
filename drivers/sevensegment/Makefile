@@ -2,11 +2,9 @@ modulename := sevensegment
 
 obj-m += $(modulename).o
 
+
 all:
 	$(MAKE) -C $(KERNEL_SRC) M=$(PWD)
-
-modules_install:
-	$(MAKE) -C $(KERNEL_SRC) M=$(PWD) modules_install
 
 clean:
 	rm -f *.o *~ core .depend .*.cmd *.ko *.mod.c
@@ -17,3 +15,6 @@ deploy: all
 	scp $(modulename).ko "$(DEPLOYSSH):$(DEPLOYSSHPATH)/$(modulename).ko"
 	ssh $(DEPLOYSSH) "rmmod $(modulename)";
 	ssh $(DEPLOYSSH) "insmod $(DEPLOYSSHPATH)/$(modulename).ko";
+
+
+.PHONY: all clean deploy

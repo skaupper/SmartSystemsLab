@@ -1,8 +1,7 @@
 /*
- * Terasic DE1-SoC ID seven segment driver
+ * Terasic DE1-SoC Seven segment driver
  *
- * Copyright (C) 2017 Daniel Giritzer <daniel@giritzer.eu>
- *                    Onur Polat <onur.polat@students.fh-hagenberg.at>
+ * Copyright (C) 2019 Michael Wurm <michael.wurm@students.fh-hagenberg.at>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -35,27 +34,6 @@ struct altera_sevenseg
   int size;
   struct miscdevice misc;
 };
-
-/*
- * @brief This function allows writing
- *        to the hex display.
- *
- * @param segment Value between 0 and 5.
- *        Segment to write to.
- *
- * @param value Value between 0 - 9 which
- *        should be displayed on the selected
- *        segment.
- *
- * @param address Address to hex display.
- */
-void write_to_seven_seg(u8 segment, char value, void *address)
-{
-  if (segment > 5 || segment < 0)
-  {
-    printk("ERROR: segment out of bound %d", segment);
-  }
-}
 
 /*
  * @brief This function gets executed on fread.
@@ -101,11 +79,7 @@ static int sevenseg_write(struct file *filep, const char *buf,
     count = BUF_SIZE - *offp;
 
   if (count > 0)
-  {
-    count = count - copy_from_user(sevenseg->buffer + *offp,
-                                   buf,
-                                   count);
-  }
+    count = count - copy_from_user(sevenseg->buffer + *offp, buf, count);
 
   /* write char values */
   for (i = 0; i < HEX_NUM; i += 2)
@@ -138,8 +112,8 @@ static int sevenseg_probe(struct platform_device *pdev)
   sevenseg->regs = devm_ioremap_resource(&pdev->dev, io);
   if (IS_ERR(sevenseg->regs))
     return PTR_ERR(sevenseg->regs);
-  sevenseg->size = io->end - io->start + 1;
 
+  sevenseg->size = io->end - io->start + 1;
   sevenseg->misc.name = DRIVER_NAME;
   sevenseg->misc.minor = MISC_DYNAMIC_MINOR;
   sevenseg->misc.fops = &sevenseg_fops;
@@ -151,7 +125,7 @@ static int sevenseg_probe(struct platform_device *pdev)
     return retval;
   }
 
-  dev_info(&pdev->dev, "Seveseg driver loaded!");
+  dev_info(&pdev->dev, "Sevensegment driver loaded!");
 
   return 0;
 }
@@ -187,6 +161,6 @@ static struct platform_driver sevenseg_driver = {
 
 module_platform_driver(sevenseg_driver);
 
-MODULE_AUTHOR("Giritzer");
+MODULE_AUTHOR("M.Wurm");
 MODULE_DESCRIPTION("Altera/Terasic seven segment driver");
 MODULE_LICENSE("GPL v2");
