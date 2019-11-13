@@ -1,0 +1,11 @@
+hdl/*
+!hdl/scripts/
+!hdl/ip/
+!hdl/components/
+!hdl/top.qpf
+!hdl/top.qsf
+!hdl/top.vhd
+!hdl/HPSPlatform.qsys
+hdl/scripts/*
+hdl/scripts/*.bat
+hdl/scripts/*.sh
