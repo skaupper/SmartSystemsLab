@@ -10,9 +10,15 @@ hdl/scripts/*
 hdl/scripts/*.bat
 hdl/scripts/*.sh
 
-drivers/**/
-!drivers/**/*.c
-!drivers/**/Makefile
+# Ignore temporary build files
+drivers/**/*.o
+drivers/**/*.cmd
+drivers/**/*.o.cmd
+drivers/**/*.symvers
+drivers/**/*.order
+drivers/**/*.ko
+drivers/**/*.mod.c
+drivers/**/.tmp_versions/
 
 user/**/
 !user/**/*.cpp
