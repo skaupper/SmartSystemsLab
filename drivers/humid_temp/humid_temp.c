@@ -73,7 +73,6 @@ static int humid_temp_read(struct file *filep, char *buf, size_t count,
 static int humid_temp_write(struct file *filep, const char *buf,
                             size_t count, loff_t *offp)
 {
-  int i = 0;
   struct humid_temp *dev = container_of(filep->private_data,
                                         struct humid_temp, misc);
 
@@ -87,19 +86,10 @@ static int humid_temp_write(struct file *filep, const char *buf,
   if (count > 0)
     count = count - copy_from_user(dev->buffer + *offp, buf, count);
 
-  /* write char values */
-  for (i = 0; i < HEX_NUM; i += 2)
-  {
-    /* combine two raw bytes into a single byte, which equals two dev digits */
-    u8 hex = ((dev->buffer[i] - '0') << 4) | (dev->buffer[i + 1] - '0');
-    iowrite8(hex, dev->regs + MEM_OFFSET_VALUE + (HEX_NUM - i - 1) / 2);
-  }
-
-  /* write brightness value */
-  iowrite8(dev->buffer[6], dev->regs + MEM_OFFSET_BRIGHTNESS);
-
-  /* write enable values */
-  iowrite8(dev->buffer[7], dev->regs + MEM_OFFSET_ENABLE);
+  /*
+   * There is probably nothing to write in this driver..
+   * We might consider to remove the entire humid_temp_write() function.
+   */
 
   *offp += count;
   return count;
