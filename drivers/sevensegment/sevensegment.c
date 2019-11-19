@@ -47,17 +47,18 @@ static int sevenseg_read(struct file *filep, char *buf, size_t count,
 {
   struct altera_sevenseg *sevenseg = container_of(filep->private_data,
                                                   struct altera_sevenseg, misc);
-
+  /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
     return 0;
 
+  /* limit number of readable bytes to maximum which is still possible */
   if ((*offp + count) > BUF_SIZE)
     count = BUF_SIZE - *offp;
 
+  /* copy data from kernel space buffer into user space */
   if (count > 0)
   {
     count = count - copy_to_user(buf, sevenseg->buffer + *offp, count);
-
     *offp += count;
   }
   return count;
@@ -77,11 +78,16 @@ static int sevenseg_write(struct file *filep, const char *buf,
   if ((*offp < 0) || (*offp >= BUF_SIZE))
     return -EINVAL;
 
+  /* limit number of writeable bytes to maximum which is still possible */
   if ((*offp + count) > BUF_SIZE)
     count = BUF_SIZE - *offp;
 
+  /* copy data from user space into kernel space buffer */
   if (count > 0)
+  {
     count = count - copy_from_user(sevenseg->buffer + *offp, buf, count);
+    *offp += count;
+  }
 
   /* write char values */
   for (i = 0; i < HEX_NUM; i += 2)
@@ -97,7 +103,6 @@ static int sevenseg_write(struct file *filep, const char *buf,
   /* write enable values */
   iowrite8(sevenseg->buffer[7], sevenseg->regs + MEM_OFFSET_ENABLE);
 
-  *offp += count;
   return count;
 }
 
