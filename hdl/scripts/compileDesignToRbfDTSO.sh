@@ -2,16 +2,12 @@
 
 set -euo pipefail
 
+echo "----------------- Entered file $0 ---------------------------------------------------"
+source ./defineFilenames.sh
 
-QSYS_DESIGN=../HPSPlatform.qsys
-QUARTUS_DESIGN=../top.qpf
-
-
-# !!! if Qsys does not complete, comment the next
-#     line and generate the QSYS design using the GUI !!!
+# NOTE: If QSYS does not complete, comment the next
+#       line and generate the QSYS design using the GUI.
 ./regenerateQsysDesign.sh
-
-
 
 # quartus_sh --flow compile $QUARTUS_DESIGN
 
@@ -32,3 +28,5 @@ echo "Generate DTS and Overlay"
 
 echo "Generate RBF from SOF"
 ./generateRbfFromSof.sh
+
+echo "----------------- Leaving file $0 ---------------------------------------------------"

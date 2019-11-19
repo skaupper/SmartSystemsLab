@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
-QSYS_DESIGN=../HPSPlatform.qsys
+set -euo pipefail
+
+echo "----------------- Entered file $0 ---------------------------------------------------"
+source ./defineFilenames.sh
 
 qsys-generate --synthesis=VERILOG $QSYS_DESIGN
+
+echo "----------------- Leaving file $0 ---------------------------------------------------"
