@@ -1,6 +1,6 @@
 APP_NAME=show_ip
 
-CPPFLAGS=-Wall -Werror -pedantic -std=c++17
+CPPFLAGS=-Wall -Werror -pedantic -std=c++17 -O2
 LDFLAGS=
 
 SOURCES=$(wildcard *.cpp)
