@@ -51,17 +51,39 @@ static int humid_temp_read(struct file *filep, char *buf, size_t count,
 {
   struct humid_temp *dev = container_of(filep->private_data,
                                         struct humid_temp, misc);
+  unsigned int rdata;
 
+  /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
     return 0;
 
+  /* limit number of readable bytes to maximum which is still possible */
   if ((*offp + count) > BUF_SIZE)
     count = BUF_SIZE - *offp;
 
+  /* read data from FPGA and store into kernel space buffer */
+  rdata = ioread32(dev->regs + MEM_OFFSET_DATA);
+  dev->buffer[0] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[1] = ((rdata & 0x0000FF00) >> 8);
+  dev->buffer[2] = ((rdata & 0x00FF0000) >> 16);
+  dev->buffer[3] = ((rdata & 0xFF000000) >> 24);
+
+  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
+  dev->buffer[4] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[5] = ((rdata & 0x0000FF00) >> 8);
+  dev->buffer[6] = ((rdata & 0x00FF0000) >> 16);
+  dev->buffer[7] = ((rdata & 0xFF000000) >> 24);
+
+  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
+  dev->buffer[8] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[9] = ((rdata & 0x0000FF00) >> 8);
+  dev->buffer[10] = ((rdata & 0x00FF0000) >> 16);
+  dev->buffer[11] = ((rdata & 0xFF000000) >> 24);
+
+  /* copy data from kernel space buffer into user space */
   if (count > 0)
   {
     count = count - copy_to_user(buf, dev->buffer + *offp, count);
-
     *offp += count;
   }
   return count;
@@ -80,18 +102,22 @@ static int humid_temp_write(struct file *filep, const char *buf,
   if ((*offp < 0) || (*offp >= BUF_SIZE))
     return -EINVAL;
 
+  /* limit number of writeable bytes to maximum which is still possible */
   if ((*offp + count) > BUF_SIZE)
     count = BUF_SIZE - *offp;
 
+  /* copy data from user space into kernel space buffer */
   if (count > 0)
+  {
     count = count - copy_from_user(dev->buffer + *offp, buf, count);
+    *offp += count;
+  }
 
   /*
    * There is probably nothing to write in this driver..
    * We might consider to remove the entire humid_temp_write() function.
    */
 
-  *offp += count;
   return count;
 }
 
