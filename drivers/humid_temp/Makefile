@@ -1,11 +1,11 @@
-modulename := sevensegment
+modulename := humid_temp
 
 obj-m += $(modulename).o
 
 
 all:
 	$(MAKE) -C $(KERNEL_SRC) M=$(PWD)
-	
+
 modules_install:
 	$(MAKE) -C $(KERNEL_SRC) M=$(PWD) modules_install
 
