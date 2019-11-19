@@ -23,13 +23,17 @@
 
 #define DRIVER_NAME "humid_temp"
 
-#define HEX_NUM 6
-#define PWM_BYTES 2
-#define BUF_SIZE (HEX_NUM + PWM_BYTES)
+#define NUM_BYTE_DATA 4
+#define NUM_BYTE_TIMESTAMP 8
 
-#define MEM_OFFSET_VALUE (0x0)
-#define MEM_OFFSET_BRIGHTNESS (0x4)
-#define MEM_OFFSET_ENABLE (0x8)
+#define BUF_SIZE (NUM_BYTE_DATA + NUM_BYTE_TIMESTAMP)
+
+#define MEM_OFFSET_DATA (0x0)
+#define MEM_OFFSET_TIMESTAMP_LOW (0x4)
+#define MEM_OFFSET_TIMESTAMP_HIGH (0x8)
+
+#define MEM_DATA_HUMID_MASK (0xFFFF0000)
+#define MEM_DATA_TEMP_MASK (0xFFFF0000)
 
 struct humid_temp
 {
@@ -144,7 +148,6 @@ static int dev_remove(struct platform_device *pdev)
   struct humid_temp *dev = platform_get_drvdata(pdev);
 
   misc_deregister(&dev->misc);
-
   platform_set_drvdata(pdev, NULL);
 
   return 0;
