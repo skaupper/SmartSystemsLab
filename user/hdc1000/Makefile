@@ -11,10 +11,10 @@ OBJECTS=$(SOURCES:.cpp=.o)
 all: $(APP_NAME)
 
 $(APP_NAME): $(OBJECTS)
-	$(CXX) $(LDFLAGS) $< -o $@
+	$(CXX)  $< $(LDFLAGS) -o $@
 
 %.o: %.cpp
-	$(CXX) $(CPPFLAGS) -c $< -o $@
+	$(CXX) -c $< $(CPPFLAGS) -o $@
 
 clean:
 	rm -rf $(OBJECTS)
