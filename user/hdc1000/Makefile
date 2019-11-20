@@ -2,7 +2,7 @@ APP_NAME=hdc1000
 
 CPPFLAGS=-Wall -Werror -pedantic -std=c++17 -O2
 # Attention: the lib diretory where the MQTT is installed into may not be in the LD path!
-LDFLAGS=-L/usr/local/lib64 -lpaho-mqtt3as -lpaho-mqttpp3
+LDFLAGS=-lpaho-mqtt3as -lpaho-mqttpp3
 
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(SOURCES:.cpp=.o)
