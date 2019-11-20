@@ -82,49 +82,15 @@ static int humid_temp_read(struct file *filep, char *buf, size_t count,
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
-  {
     count = count - copy_to_user(buf, dev->buffer + *offp, count);
-    *offp += count;
-  }
-  return count;
-}
 
-/*
- * @brief This function gets executed on fwrite.
- */
-static int humid_temp_write(struct file *filep, const char *buf,
-                            size_t count, loff_t *offp)
-{
-  struct humid_temp *dev = container_of(filep->private_data,
-                                        struct humid_temp, misc);
-
-  /* check out of bound access */
-  if ((*offp < 0) || (*offp >= BUF_SIZE))
-    return -EINVAL;
-
-  /* limit number of writeable bytes to maximum which is still possible */
-  if ((*offp + count) > BUF_SIZE)
-    count = BUF_SIZE - *offp;
-
-  /* copy data from user space into kernel space buffer */
-  if (count > 0)
-  {
-    count = count - copy_from_user(dev->buffer + *offp, buf, count);
-    *offp += count;
-  }
-
-  /*
-   * There is probably nothing to write in this driver..
-   * We might consider to remove the entire humid_temp_write() function.
-   */
-
+  *offp += count;
   return count;
 }
 
 static const struct file_operations humid_temp_fops = {
     .owner = THIS_MODULE,
-    .read = humid_temp_read,
-    .write = humid_temp_write};
+    .read = humid_temp_read};
 
 static int dev_probe(struct platform_device *pdev)
 {
