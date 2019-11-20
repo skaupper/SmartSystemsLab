@@ -59,8 +59,8 @@ std::optional<HDC1000> readFromCDev() {
 std::string constructPayloadString(HDC1000 payload) {
     std::stringstream ss;
     ss << "{";
-    ss << "\"temperatur\":" << payload.temperature << ",";
-    ss << "\"humidity\":"   << payload.humidity    << ",";
+    ss << "\"tmp\":"        << payload.temperature << ",";
+    ss << "\"hum\":"        << payload.humidity    << ",";
     ss << "\"timestamp\":"  << payload.timeStamp;
     ss << "}";
     return ss.str();
@@ -69,9 +69,9 @@ std::string constructPayloadString(HDC1000 payload) {
 
 
 int main() {
-    static const std::string SERVER_URI     = "193.170.192.224";
+    static const std::string SERVER_URI     = "193.170.192.224:1883";
     static const std::string CLIENT_ID      = "HDC1000_client";
-    static const std::string HDC1000_TOPIC  = "";
+    static const std::string HDC1000_TOPIC  = "sensor/hdc1000";
 
     mqtt::client client(SERVER_URI, CLIENT_ID);
     client.connect();
