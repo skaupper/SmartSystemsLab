@@ -87,18 +87,14 @@ static int sevenseg_write(struct file *filep, const char *buf,
 
   *offp += count;
 
-  /* write char values */
+  /* write data to FPGA */
   for (i = 0; i < HEX_NUM; i += 2)
   {
     /* combine two raw bytes into a single byte, which equals two sevenseg digits */
     u8 hex = ((sevenseg->buffer[i] - '0') << 4) | (sevenseg->buffer[i + 1] - '0');
     iowrite8(hex, sevenseg->regs + MEM_OFFSET_VALUE + (HEX_NUM - i - 1) / 2);
   }
-
-  /* write brightness value */
   iowrite8(sevenseg->buffer[6], sevenseg->regs + MEM_OFFSET_BRIGHTNESS);
-
-  /* write enable values */
   iowrite8(sevenseg->buffer[7], sevenseg->regs + MEM_OFFSET_ENABLE);
 
   return count;
