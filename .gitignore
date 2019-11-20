@@ -18,3 +18,8 @@ user/**/
 !user/**/*.cpp
 !user/**/*.h
 !user/**/Makefile
+
+work/
+transcript
+*.wlf
+*~

@@ -9,6 +9,14 @@
    categories="System" />
  <parameter name="bonusData"><![CDATA[bonusData 
 {
+   element hdc1000_0
+   {
+      datum _sortIndex
+      {
+         value = "3";
+         type = "int";
+      }
+   }
    element leds
    {
       datum _sortIndex
@@ -54,6 +62,13 @@
  <parameter name="timeStamp" value="0" />
  <parameter name="useTestBenchNamingPattern" value="false" />
  <instanceScript></instanceScript>
+ <interface name="hdc1000_clk" internal="hdc1000_0.clk" type="clock" dir="end" />
+ <interface
+   name="hdc1000_reset"
+   internal="hdc1000_0.reset"
+   type="reset"
+   dir="end" />
+ <interface name="hdc1000_s0" internal="hdc1000_0.s0" type="avalon" dir="end" />
  <interface name="leds_clk" internal="leds.clk" type="clock" dir="end" />
  <interface
    name="leds_external_connection"
@@ -94,6 +109,9 @@
    type="reset"
    dir="end" />
  <interface name="switches_s1" internal="switches.s1" type="avalon" dir="end" />
+ <module name="hdc1000_0" kind="hdc1000" version="1.0" enabled="1">
+  <parameter name="gClkFrequency" value="100000000" />
+ </module>
  <module name="leds" kind="altera_avalon_pio" version="18.1" enabled="1">
   <parameter name="bitClearingEdgeCapReg" value="false" />
   <parameter name="bitModifyingOutReg" value="false" />

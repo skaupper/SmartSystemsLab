@@ -65,6 +65,14 @@
          type = "String";
       }
    }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element clk_0
    {
       datum _sortIndex
@@ -81,8 +89,26 @@
          type = "int";
       }
    }
+   element hmi.hdc1000_s0
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "4096";
+         type = "String";
+      }
+   }
    element hmi.leds_s1
    {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
       datum baseAddress
       {
          value = "1040";
@@ -91,6 +117,11 @@
    }
    element hmi.seven_segment_s0
    {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
       datum baseAddress
       {
          value = "0";
@@ -99,6 +130,11 @@
    }
    element hmi.switches_s1
    {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
       datum baseAddress
       {
          value = "1024";
@@ -185,6 +221,9 @@
   <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
   <parameter name="AUTO_GENERATION_ID" value="0" />
+  <parameter name="AUTO_HDC1000_CLK_CLOCK_DOMAIN" value="1" />
+  <parameter name="AUTO_HDC1000_CLK_CLOCK_RATE" value="50000000" />
+  <parameter name="AUTO_HDC1000_CLK_RESET_DOMAIN" value="1" />
   <parameter name="AUTO_LEDS_CLK_CLOCK_DOMAIN" value="1" />
   <parameter name="AUTO_LEDS_CLK_CLOCK_RATE" value="50000000" />
   <parameter name="AUTO_LEDS_CLK_RESET_DOMAIN" value="1" />
@@ -730,6 +769,15 @@
    kind="avalon"
    version="18.1"
    start="hps_0.h2f_lw_axi_master"
+   end="hmi.hdc1000_s0">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x1000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="18.1"
+   start="hps_0.h2f_lw_axi_master"
    end="hmi.leds_s1">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0410" />
@@ -768,6 +816,7 @@
    version="18.1"
    start="clk_0.clk"
    end="hps_0.h2f_lw_axi_clock" />
+ <connection kind="clock" version="18.1" start="clk_0.clk" end="hmi.hdc1000_clk" />
  <connection kind="clock" version="18.1" start="clk_0.clk" end="hmi.leds_clk" />
  <connection
    kind="clock"
@@ -775,6 +824,11 @@
    start="clk_0.clk"
    end="hmi.seven_segment_clock" />
  <connection kind="clock" version="18.1" start="clk_0.clk" end="hmi.switches_clk" />
+ <connection
+   kind="reset"
+   version="18.1"
+   start="clk_0.clk_reset"
+   end="hmi.hdc1000_reset" />
  <connection
    kind="reset"
    version="18.1"
