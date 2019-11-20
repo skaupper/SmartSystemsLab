@@ -85,6 +85,7 @@ static int humid_temp_read(struct file *filep, char *buf, size_t count,
     count = count - copy_to_user(buf, dev->buffer + *offp, count);
 
   *offp += count;
+
   return count;
 }
 

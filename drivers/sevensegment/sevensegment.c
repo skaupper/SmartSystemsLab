@@ -57,10 +57,9 @@ static int sevenseg_read(struct file *filep, char *buf, size_t count,
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
-  {
     count = count - copy_to_user(buf, sevenseg->buffer + *offp, count);
-    *offp += count;
-  }
+
+  *offp += count;
   return count;
 }
 
@@ -84,10 +83,9 @@ static int sevenseg_write(struct file *filep, const char *buf,
 
   /* copy data from user space into kernel space buffer */
   if (count > 0)
-  {
     count = count - copy_from_user(sevenseg->buffer + *offp, buf, count);
-    *offp += count;
-  }
+
+  *offp += count;
 
   /* write char values */
   for (i = 0; i < HEX_NUM; i += 2)
@@ -149,7 +147,6 @@ static int sevenseg_remove(struct platform_device *pdev)
   struct altera_sevenseg *sevenseg = platform_get_drvdata(pdev);
 
   misc_deregister(&sevenseg->misc);
-
   platform_set_drvdata(pdev, NULL);
 
   return 0;
