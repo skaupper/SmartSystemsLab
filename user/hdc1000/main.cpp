@@ -1,12 +1,10 @@
-#include "mqtt/client.h"
+#include "fpga.h"
 
-
-#include <cstdio>
-#include <cstdint>
+#include <mqtt/client.h>
+#include <libfpgaregion.h>
 
 #include <iostream>
 #include <string>
-#include <thread>
 #include <chrono>
 #include <optional>
 #include <sstream>
@@ -31,6 +29,10 @@ std::optional<HDC1000> readFromCDev() {
 
     HDC1000 results;
     uint8_t readBuf[READ_SIZE];
+
+    // lock fpga device using a lock guard
+    // the result is never used, but it keeps the mutex locked until it goes out of scope
+    auto _lck = lockFPGA();
 
     // open character device
     auto fd = fopen(CHARACTER_DEVICE.c_str(), "rb");
@@ -72,6 +74,13 @@ int main() {
     static const std::string SERVER_URI     = "193.170.192.224:1883";
     static const std::string CLIENT_ID      = "HDC1000_client";
     static const std::string HDC1000_TOPIC  = "sensor/hdc1000";
+
+    try {
+        initFPGA("HDC1000");
+    } catch (const std::string &s) {
+        std::cerr << "Failed to initialize FPGA: " << s << std::endl;
+        return -1;
+    }
 
     mqtt::client client(SERVER_URI, CLIENT_ID);
     client.connect();
