@@ -19,14 +19,19 @@ use IEEE.numeric_std.all;
 entity hdc1000 is
    generic (
       gClkFrequency    : natural := 100E6);
-   port (
+   port ( 
+      iClk             : in  std_logic                     := '0';             -- clock.clk 
+      inRst            : in  std_logic                     := '0'              -- reset.reset 
       avs_s0_address   : in  std_logic_vector( 1 downto 0) := (others => '0'); -- avs_s0.address
       avs_s0_read      : in  std_logic                     := '0';             --       .read
       avs_s0_readdata  : out std_logic_vector(31 downto 0);                    --       .readdata
       avs_s0_write     : in  std_logic                     := '0';             --       .write
       avs_s0_writedata : in  std_logic_vector(31 downto 0) := (others => '0'); --       .writedata
-      iClk             : in  std_logic                     := '0';             --  clock.clk
-      inRst            : in  std_logic                     := '0'              --  reset.reset
+      avm_m0_address   : out std_logic_vector( 2 downto 0) := (others => '0'); -- avs_m0.address
+      avm_m0_read      : out std_logic                     := '0';             --       .read
+      avm_m0_readdata  : in  std_logic_vector(31 downto 0);                    --       .readdata
+      avm_m0_write     : out std_logic                     := '0';             --       .write
+      avm_m0_writedata : out std_logic_vector(31 downto 0) := (others => '0'); --       .writedata
    );
 end entity hdc1000;
 
@@ -37,10 +42,20 @@ architecture rtl of hdc1000 is
    constant cSensorValueWidth : natural := 16;
    subtype aSensorValue is std_ulogic_vector (cSensorValueWidth-1 downto 0);
 
+   -- I2C Avalon Adresses
+   constant cTrfrCmdAddr        : std_logic_vector(1 downto 0) := "000";
+   constant cRxDataAddr         : std_logic_vector(1 downto 0) := "001";
+   constant cCtrlAddr           : std_logic_vector(1 downto 0) := "010";
+   constant cISERAddr           : std_logic_vector(1 downto 0) := "011";
+   constant cISRAddr            : std_logic_vector(1 downto 0) := "100";
+   constant cStatAddr           : std_logic_vector(1 downto 0) := "101";
+   constant cTrfrCmdFifoLvlAddr : std_logic_vector(1 downto 0) := "110";
+   constant cRxDataFifoLvlAddr  : std_logic_vector(1 downto 0) := "111";
+
+   -- Avalon Adresses
    constant cAddrData : std_logic_vector(1 downto 0) := "00";
    constant cAddrTsLo : std_logic_vector(1 downto 0) := "01";
    constant cAddrTsUp : std_logic_vector(1 downto 0) := "10";
-
 
    type aValueSet is record
       timestamp   : aTimestamp;
