@@ -25,8 +25,15 @@ architecture bhv of tbHdc1000 is
    signal avs_s0_readdata  : std_logic_vector(31 downto 0);                    --       .readdata
    signal avs_s0_write     : std_logic                     := '0';             --       .write
    signal avs_s0_writedata : std_logic_vector(31 downto 0) := (others => '0'); --       .writedata
+   signal avs_m0_address   : std_logic_vector( 1 downto 0) := (others => '0'); -- avs_s0.address
+   signal avs_m0_read      : std_logic                     := '0';             --       .read
+   signal avs_m0_readdata  : std_logic_vector(31 downto 0);                    --       .readdata
+   signal avs_m0_write     : std_logic                     := '0';             --       .write
+   signal avs_m0_waitrequest : std_logic                     := '0';             --       .write
+   signal avs_m0_writedata : std_logic_vector(31 downto 0) := (others => '0'); --       .writedata
    signal clk             : std_logic                      := '0';             --  clock.clk
    signal nRst            : std_logic                      := '0';             --  reset.reset
+   signal hdcRdy            : std_logic                      := '0';             --  reset.reset
 begin
 
    nRst <= '1' after 20 ns;
@@ -41,8 +48,15 @@ begin
       avs_s0_readdata  => avs_s0_readdata,
       avs_s0_write     => avs_s0_write,
       avs_s0_writedata => avs_s0_writedata,
+      avs_m0_address   => avs_m0_address,
+      avs_m0_read      => avs_m0_read,
+      avs_m0_readdata  => avs_m0_readdata,
+      avs_m0_write     => avs_m0_write,
+      avs_m0_waitrequest     => avs_m0_waitrequest,
+      avs_m0_writedata => avs_m0_writedata,
       iClk             => clk,
-      inRst            => nRst);
+      inRst            => nRst,
+      iHdcRdy            => hdcRdy);
 
    test_proc : process
    begin

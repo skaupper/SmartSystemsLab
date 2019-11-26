@@ -215,7 +215,7 @@ BEGIN
 u0 : component HPSPlatform
         port map (
             clk_clk                         => CLOCK_50,                         --                     clk.clk
-            reset_reset_n                   => HPS_H2F_RST,                   --                   reset.reset_n
+            reset_reset_n                   => HPS_H2F_RST AND SW(0),                   --                   reset.reset_n
             memory_mem_a                    => HPS_DDR3_ADDR,                    --                  memory.mem_a
             memory_mem_ba                   => HPS_DDR3_BA,                   --                        .mem_ba
             memory_mem_ck                   => HPS_DDR3_CK_P,                   --                        .mem_ck

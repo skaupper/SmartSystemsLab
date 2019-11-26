@@ -149,7 +149,7 @@ begin
       inResetAsync     => inRst,
       oStrobe          => msTick);
 
-   fsm : process( reg, avs_s0_read, msTick, avs_s0_address )
+   fsm : process( reg, avs_s0_read, msTick, avs_s0_address, avm_m0_readdata )
    begin
       nxR <= reg;
       nxR.readdata <= (others => '0');
@@ -344,10 +344,6 @@ begin
          when others =>
             nxR.hdcState <= Init;
       end case;
-
-      -- Pseudo values
-      nxR.shadowReg.humidity    <= std_ulogic_vector(nxR.shadowReg.timestamp(15 downto 0));
-      nxR.shadowReg.temperature <= std_ulogic_vector(nxR.shadowReg.timestamp(15 downto 0));
 
       -- Bus logic
       if avs_s0_read = '1' then
