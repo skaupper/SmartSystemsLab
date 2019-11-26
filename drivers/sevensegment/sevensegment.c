@@ -47,19 +47,19 @@ static int sevenseg_read(struct file *filep, char *buf, size_t count,
 {
   struct altera_sevenseg *sevenseg = container_of(filep->private_data,
                                                   struct altera_sevenseg, misc);
-
+  /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
     return 0;
 
+  /* limit number of readable bytes to maximum which is still possible */
   if ((*offp + count) > BUF_SIZE)
     count = BUF_SIZE - *offp;
 
+  /* copy data from kernel space buffer into user space */
   if (count > 0)
-  {
     count = count - copy_to_user(buf, sevenseg->buffer + *offp, count);
 
-    *offp += count;
-  }
+  *offp += count;
   return count;
 }
 
@@ -77,27 +77,26 @@ static int sevenseg_write(struct file *filep, const char *buf,
   if ((*offp < 0) || (*offp >= BUF_SIZE))
     return -EINVAL;
 
+  /* limit number of writeable bytes to maximum which is still possible */
   if ((*offp + count) > BUF_SIZE)
     count = BUF_SIZE - *offp;
 
+  /* copy data from user space into kernel space buffer */
   if (count > 0)
     count = count - copy_from_user(sevenseg->buffer + *offp, buf, count);
 
-  /* write char values */
+  *offp += count;
+
+  /* write data to FPGA */
   for (i = 0; i < HEX_NUM; i += 2)
   {
     /* combine two raw bytes into a single byte, which equals two sevenseg digits */
     u8 hex = ((sevenseg->buffer[i] - '0') << 4) | (sevenseg->buffer[i + 1] - '0');
     iowrite8(hex, sevenseg->regs + MEM_OFFSET_VALUE + (HEX_NUM - i - 1) / 2);
   }
-
-  /* write brightness value */
   iowrite8(sevenseg->buffer[6], sevenseg->regs + MEM_OFFSET_BRIGHTNESS);
-
-  /* write enable values */
   iowrite8(sevenseg->buffer[7], sevenseg->regs + MEM_OFFSET_ENABLE);
 
-  *offp += count;
   return count;
 }
 
@@ -144,7 +143,6 @@ static int sevenseg_remove(struct platform_device *pdev)
   struct altera_sevenseg *sevenseg = platform_get_drvdata(pdev);
 
   misc_deregister(&sevenseg->misc);
-
   platform_set_drvdata(pdev, NULL);
 
   return 0;
