@@ -20,7 +20,7 @@ struct HDC1000 {
 };
 
 std::optional<HDC1000> readFromCDev() {
-    static const std::string CHARACTER_DEVICE = "/dev/humid_temp";
+    static const std::string CHARACTER_DEVICE = "/dev/hdc1000";
     static const int READ_SIZE = 12;
 
     static const int OFFSET_TEMPERATURE = 0;
