@@ -51,7 +51,7 @@ ENTITY txfifo IS
 		empty		: OUT STD_LOGIC ;
 		full		: OUT STD_LOGIC ;
 		q		: OUT STD_LOGIC_VECTOR (9 DOWNTO 0);
-		usedw		: OUT STD_LOGIC_VECTOR (2 DOWNTO 0)
+		usedw		: OUT STD_LOGIC_VECTOR (3 DOWNTO 0)
 	);
 END txfifo;
 
@@ -61,7 +61,7 @@ ARCHITECTURE SYN OF txfifo IS
 	SIGNAL sub_wire0	: STD_LOGIC ;
 	SIGNAL sub_wire1	: STD_LOGIC ;
 	SIGNAL sub_wire2	: STD_LOGIC_VECTOR (9 DOWNTO 0);
-	SIGNAL sub_wire3	: STD_LOGIC_VECTOR (2 DOWNTO 0);
+	SIGNAL sub_wire3	: STD_LOGIC_VECTOR (3 DOWNTO 0);
 
 
 
@@ -88,7 +88,7 @@ ARCHITECTURE SYN OF txfifo IS
 			empty	: OUT STD_LOGIC ;
 			full	: OUT STD_LOGIC ;
 			q	: OUT STD_LOGIC_VECTOR (9 DOWNTO 0);
-			usedw	: OUT STD_LOGIC_VECTOR (2 DOWNTO 0)
+			usedw	: OUT STD_LOGIC_VECTOR (3 DOWNTO 0)
 	);
 	END COMPONENT;
 
@@ -96,17 +96,17 @@ BEGIN
 	empty    <= sub_wire0;
 	full    <= sub_wire1;
 	q    <= sub_wire2(9 DOWNTO 0);
-	usedw    <= sub_wire3(2 DOWNTO 0);
+	usedw    <= sub_wire3(3 DOWNTO 0);
 
 	scfifo_component : scfifo
 	GENERIC MAP (
 		add_ram_output_register => "OFF",
 		intended_device_family => "Cyclone V",
-		lpm_numwords => 8,
+		lpm_numwords => 16,
 		lpm_showahead => "OFF",
 		lpm_type => "scfifo",
 		lpm_width => 10,
-		lpm_widthu => 3,
+		lpm_widthu => 4,
 		overflow_checking => "ON",
 		underflow_checking => "ON",
 		use_eab => "ON"
@@ -137,7 +137,7 @@ END SYN;
 -- Retrieval info: PRIVATE: AlmostFullThr NUMERIC "-1"
 -- Retrieval info: PRIVATE: CLOCKS_ARE_SYNCHRONIZED NUMERIC "0"
 -- Retrieval info: PRIVATE: Clock NUMERIC "0"
--- Retrieval info: PRIVATE: Depth NUMERIC "8"
+-- Retrieval info: PRIVATE: Depth NUMERIC "16"
 -- Retrieval info: PRIVATE: Empty NUMERIC "1"
 -- Retrieval info: PRIVATE: Full NUMERIC "1"
 -- Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone V"
@@ -166,11 +166,11 @@ END SYN;
 -- Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
 -- Retrieval info: CONSTANT: ADD_RAM_OUTPUT_REGISTER STRING "OFF"
 -- Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone V"
--- Retrieval info: CONSTANT: LPM_NUMWORDS NUMERIC "8"
+-- Retrieval info: CONSTANT: LPM_NUMWORDS NUMERIC "16"
 -- Retrieval info: CONSTANT: LPM_SHOWAHEAD STRING "OFF"
 -- Retrieval info: CONSTANT: LPM_TYPE STRING "scfifo"
 -- Retrieval info: CONSTANT: LPM_WIDTH NUMERIC "10"
--- Retrieval info: CONSTANT: LPM_WIDTHU NUMERIC "3"
+-- Retrieval info: CONSTANT: LPM_WIDTHU NUMERIC "4"
 -- Retrieval info: CONSTANT: OVERFLOW_CHECKING STRING "ON"
 -- Retrieval info: CONSTANT: UNDERFLOW_CHECKING STRING "ON"
 -- Retrieval info: CONSTANT: USE_EAB STRING "ON"
@@ -182,7 +182,7 @@ END SYN;
 -- Retrieval info: USED_PORT: q 0 0 10 0 OUTPUT NODEFVAL "q[9..0]"
 -- Retrieval info: USED_PORT: rdreq 0 0 0 0 INPUT NODEFVAL "rdreq"
 -- Retrieval info: USED_PORT: sclr 0 0 0 0 INPUT NODEFVAL "sclr"
--- Retrieval info: USED_PORT: usedw 0 0 3 0 OUTPUT NODEFVAL "usedw[2..0]"
+-- Retrieval info: USED_PORT: usedw 0 0 4 0 OUTPUT NODEFVAL "usedw[3..0]"
 -- Retrieval info: USED_PORT: wrreq 0 0 0 0 INPUT NODEFVAL "wrreq"
 -- Retrieval info: CONNECT: @aclr 0 0 0 0 aclr 0 0 0 0
 -- Retrieval info: CONNECT: @clock 0 0 0 0 clock 0 0 0 0
@@ -193,10 +193,10 @@ END SYN;
 -- Retrieval info: CONNECT: empty 0 0 0 0 @empty 0 0 0 0
 -- Retrieval info: CONNECT: full 0 0 0 0 @full 0 0 0 0
 -- Retrieval info: CONNECT: q 0 0 10 0 @q 0 0 10 0
--- Retrieval info: CONNECT: usedw 0 0 3 0 @usedw 0 0 3 0
+-- Retrieval info: CONNECT: usedw 0 0 4 0 @usedw 0 0 4 0
 -- Retrieval info: GEN_FILE: TYPE_NORMAL txfifo.vhd TRUE
 -- Retrieval info: GEN_FILE: TYPE_NORMAL txfifo.inc FALSE
 -- Retrieval info: GEN_FILE: TYPE_NORMAL txfifo.cmp TRUE
 -- Retrieval info: GEN_FILE: TYPE_NORMAL txfifo.bsf FALSE
--- Retrieval info: GEN_FILE: TYPE_NORMAL txfifo_inst.vhd TRUE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL txfifo_inst.vhd FALSE
 -- Retrieval info: LIB_FILE: altera_mf
