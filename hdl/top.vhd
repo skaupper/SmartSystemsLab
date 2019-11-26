@@ -189,7 +189,12 @@ ARCHITECTURE MAIN OF top IS
             reset_reset_n                        : in    std_logic                     := 'X';             -- reset_n
             leds_external_connection_export      : out   std_logic_vector(9 downto 0);                     -- export
             seven_segment_conduit_end_export     : out   std_logic_vector(41 downto 0);                    -- export
-            switches_external_connection_export  : in    std_logic_vector(9 downto 0)  := (others => 'X') -- export
+            switches_external_connection_export  : in    std_logic_vector(9 downto 0)  := (others => 'X'); -- export
+            hmi_subsystemhdc1000_0_hdcrdy_interrupt           : in    std_logic                     := 'X';             -- interrupt
+            hmi_subsystemhdc1000_0_i2c_0_i2c_sda_in      : in    std_logic                     := 'X';             -- sda_in
+            hmi_subsystemhdc1000_0_i2c_0_i2c_scl_in      : in    std_logic                     := 'X';             -- scl_in
+            hmi_subsystemhdc1000_0_i2c_0_i2c_sda_oe      : out   std_logic;                                        -- sda_oe
+            hmi_subsystemhdc1000_0_i2c_0_i2c_scl_oe      : out   std_logic                                         -- scl_oe
         );
     end component HPSPlatform;
 
@@ -292,7 +297,13 @@ u0 : component HPSPlatform
             seven_segment_conduit_end_export(6+7*2 downto  7*2)    => HEX2,
             seven_segment_conduit_end_export(6+7*3 downto  7*3)    => HEX3,
             seven_segment_conduit_end_export(6+7*4 downto  7*4)    => HEX4,
-            seven_segment_conduit_end_export(6+7*5 downto  7*5)    => HEX5
+            seven_segment_conduit_end_export(6+7*5 downto  7*5)    => HEX5,
+
+            hmi_subsystemhdc1000_0_hdcrdy_interrupt           => RH_TEMP_DRDY_n,           --             hdc1000_0_hdcrdy.interrupt
+            hmi_subsystemhdc1000_0_i2c_0_i2c_sda_in      => RH_TEMP_I2C_SDA,      --     hdc1000_i2c_0_i2c_serial.sda_in
+            hmi_subsystemhdc1000_0_i2c_0_i2c_scl_in      => RH_TEMP_I2C_SCL,      --                             .scl_in
+            hmi_subsystemhdc1000_0_i2c_0_i2c_sda_oe      => RH_TEMP_I2C_SDA,      --                             .sda_oe
+            hmi_subsystemhdc1000_0_i2c_0_i2c_scl_oe      => RH_TEMP_I2C_SCL       --                             .scl_oe
         );
 
 END ARCHITECTURE;

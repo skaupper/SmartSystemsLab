@@ -9,14 +9,6 @@
    categories="System" />
  <parameter name="bonusData"><![CDATA[bonusData 
 {
-   element hdc1000_0
-   {
-      datum _sortIndex
-      {
-         value = "3";
-         type = "int";
-      }
-   }
    element leds
    {
       datum _sortIndex
@@ -30,6 +22,14 @@
       datum _sortIndex
       {
          value = "1";
+         type = "int";
+      }
+   }
+   element subsystemHdc1000_0
+   {
+      datum _sortIndex
+      {
+         value = "3";
          type = "int";
       }
    }
@@ -62,13 +62,21 @@
  <parameter name="timeStamp" value="0" />
  <parameter name="useTestBenchNamingPattern" value="false" />
  <instanceScript></instanceScript>
- <interface name="hdc1000_clk" internal="hdc1000_0.clk" type="clock" dir="end" />
+ <interface name="hdc1000_0_clk" internal="subsystemHdc1000_0.hdc1000_0_clk" />
  <interface
-   name="hdc1000_reset"
-   internal="hdc1000_0.reset"
-   type="reset"
-   dir="end" />
- <interface name="hdc1000_s0" internal="hdc1000_0.s0" type="avalon" dir="end" />
+   name="hdc1000_0_hdcrdy"
+   internal="subsystemHdc1000_0.hdc1000_0_hdcRdy" />
+ <interface name="hdc1000_0_reset" internal="subsystemHdc1000_0.hdc1000_0_reset" />
+ <interface name="hdc1000_0_s0" internal="subsystemHdc1000_0.hdc1000_0_s0" />
+ <interface
+   name="hdc1000_i2c_0_clk"
+   internal="subsystemHdc1000_0.hdc1000_i2c_0_clk" />
+ <interface
+   name="hdc1000_i2c_0_i2c_serial"
+   internal="subsystemHdc1000_0.hdc1000_i2c_0_i2c_serial" />
+ <interface
+   name="hdc1000_i2c_0_reset"
+   internal="subsystemHdc1000_0.hdc1000_i2c_0_reset" />
  <interface name="leds_clk" internal="leds.clk" type="clock" dir="end" />
  <interface
    name="leds_external_connection"
@@ -97,6 +105,31 @@
    internal="seven_segment.s0"
    type="avalon"
    dir="end" />
+ <interface
+   name="subsystemhdc1000_0_clk"
+   internal="subsystemHdc1000_0.clk"
+   type="clock"
+   dir="end" />
+ <interface
+   name="subsystemhdc1000_0_hdcrdy"
+   internal="subsystemHdc1000_0.hdcrdy"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="subsystemhdc1000_0_i2c_0_i2c"
+   internal="subsystemHdc1000_0.i2c_0_i2c"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="subsystemhdc1000_0_reset"
+   internal="subsystemHdc1000_0.reset"
+   type="reset"
+   dir="end" />
+ <interface
+   name="subsystemhdc1000_0_s0"
+   internal="subsystemHdc1000_0.s0"
+   type="avalon"
+   dir="end" />
  <interface name="switches_clk" internal="switches.clk" type="clock" dir="end" />
  <interface
    name="switches_external_connection"
@@ -109,9 +142,6 @@
    type="reset"
    dir="end" />
  <interface name="switches_s1" internal="switches.s1" type="avalon" dir="end" />
- <module name="hdc1000_0" kind="hdc1000" version="1.0" enabled="1">
-  <parameter name="gClkFrequency" value="100000000" />
- </module>
  <module name="leds" kind="altera_avalon_pio" version="18.1" enabled="1">
   <parameter name="bitClearingEdgeCapReg" value="false" />
   <parameter name="bitModifyingOutReg" value="false" />
@@ -127,6 +157,26 @@
   <parameter name="width" value="10" />
  </module>
  <module name="seven_segment" kind="seven_segment" version="1.0" enabled="1" />
+ <module
+   name="subsystemHdc1000_0"
+   kind="subsystemHdc1000"
+   version="1.0"
+   enabled="1">
+  <parameter name="AUTO_CLK_CLOCK_DOMAIN" value="5" />
+  <parameter name="AUTO_CLK_CLOCK_RATE" value="0" />
+  <parameter name="AUTO_CLK_RESET_DOMAIN" value="5" />
+  <parameter name="AUTO_DEVICE" value="5CSEMA5F31C6" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
+  <parameter name="AUTO_GENERATION_ID" value="0" />
+  <parameter name="AUTO_HDC1000_0_CLK_CLOCK_DOMAIN" value="-1" />
+  <parameter name="AUTO_HDC1000_0_CLK_CLOCK_RATE" value="-1" />
+  <parameter name="AUTO_HDC1000_0_CLK_RESET_DOMAIN" value="-1" />
+  <parameter name="AUTO_HDC1000_I2C_0_CLK_CLOCK_DOMAIN" value="-1" />
+  <parameter name="AUTO_HDC1000_I2C_0_CLK_CLOCK_RATE" value="-1" />
+  <parameter name="AUTO_HDC1000_I2C_0_CLK_RESET_DOMAIN" value="-1" />
+  <parameter name="AUTO_UNIQUE_ID">subsystemHMI_subsystemHdc1000_0</parameter>
+ </module>
  <module name="switches" kind="altera_avalon_pio" version="18.1" enabled="1">
   <parameter name="bitClearingEdgeCapReg" value="false" />
   <parameter name="bitModifyingOutReg" value="false" />
