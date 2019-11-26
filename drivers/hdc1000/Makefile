@@ -1,4 +1,4 @@
-modulename := humid_temp
+modulename := hdc1000
 
 obj-m += $(modulename).o
 

@@ -21,7 +21,7 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 
-#define DRIVER_NAME "humid_temp"
+#define DRIVER_NAME "hdc1000"
 
 #define NUM_BYTE_DATA 4
 #define NUM_BYTE_TIMESTAMP 8
