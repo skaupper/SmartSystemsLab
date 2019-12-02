@@ -23,3 +23,5 @@ work/
 transcript
 *.wlf
 *~
+
+hdl/ip/.qsys_edit/

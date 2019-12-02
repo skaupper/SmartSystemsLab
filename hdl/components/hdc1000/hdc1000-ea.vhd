@@ -51,11 +51,12 @@ architecture rtl of hdc1000 is
    constant cTrfrCmdAddr        : std_ulogic_vector(3 downto 0) := X"0";
    constant cRxDataAddr         : std_ulogic_vector(3 downto 0) := X"1";
    constant cCtrlAddr           : std_ulogic_vector(3 downto 0) := X"2";
-   constant cISERAddr           : std_ulogic_vector(3 downto 0) := X"3";
-   constant cISRAddr            : std_ulogic_vector(3 downto 0) := X"4";
-   constant cStatAddr           : std_ulogic_vector(3 downto 0) := X"5";
-   constant cTrfrCmdFifoLvlAddr : std_ulogic_vector(3 downto 0) := X"6";
-   constant cRxDataFifoLvlAddr  : std_ulogic_vector(3 downto 0) := X"7";
+   --constant cISERAddr           : std_ulogic_vector(3 downto 0) := X"3";
+   --constant cISRAddr            : std_ulogic_vector(3 downto 0) := X"4";
+   constant cRxFifoLvlAddr      : std_ulogic_vector(3 downto 0) := X"7";
+   --constant cStatAddr           : std_ulogic_vector(3 downto 0) := X"3";
+   --constant cTrfrCmdFifoLvlAddr : std_ulogic_vector(3 downto 0) := X"6";
+   --constant cRxDataFifoLvlAddr  : std_ulogic_vector(3 downto 0) := X"7";
 
    -- I2C Addresses
    constant cHdcReadAddr  : std_ulogic_vector(7 downto 0) := X"81";
@@ -107,7 +108,7 @@ architecture rtl of hdc1000 is
       StartMeasureHum1, StartMeasureHum2,
       WaitHum1, WaitHum2,
       HumWrCmd1, HumWrCmd2, HumRdCmd1, HumRdCmd2, HumRdCmd3,
-      WaitRead, TmpRead1, TmpRead2, HumRead1, HumRead2
+      WaitRead1, WaitRead2, TmpRead1, TmpRead2, HumRead1, HumRead2
    );
 
    type aRegSet is record
@@ -133,7 +134,7 @@ architecture rtl of hdc1000 is
       avm       => cAvmRegSetClear,
       timestamp => (others => '0'),
       valid     => '0',
-      hdcState  => Idle);
+      hdcState  => Init);
 
    signal msTick   : std_ulogic;
    signal reg, nxR : aRegSet;
@@ -149,7 +150,7 @@ begin
       inResetAsync     => inRst,
       oStrobe          => msTick);
 
-   fsm : process( reg, avs_s0_read, msTick, avs_s0_address, avm_m0_readdata )
+   fsm : process( reg, avs_s0_read, msTick, avs_s0_address, avm_m0_readdata, HdcRdySync, avm_m0_waitrequest )
    begin
       nxR <= reg;
       nxR.readdata <= (others => '0');
@@ -183,7 +184,7 @@ begin
             nxR.hdcState <= InitI2c;
          when InitI2c =>
             nxR.avm.addr  <= cCtrlAddr;
-            nxR.avm.wData(1 downto 0) <= '1' & '1';
+            nxR.avm.wData(1 downto 0) <= "11";
             nxR.avm.write <= cActivated;
             nxR.hdcState <= InitHdc1;
          when InitHdc1 =>
@@ -235,7 +236,7 @@ begin
             nxR.hdcState <= TempWrCmd2;
          when TempWrCmd2 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 0) <= '0' & '1' & cHdcTempAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '0' & cHdcTempAddr;
             nxR.avm.write <= cActivated;
             nxR.hdcState <= TempRdCmd1;
          when TempRdCmd1 =>
@@ -245,12 +246,12 @@ begin
             nxR.hdcState <= TempRdCmd2;
          when TempRdCmd2 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 8) <= '0' & '0';
+            nxR.avm.wData(10 downto 8) <= '0' & '0' & '1';
             nxR.avm.write <= cActivated;
             nxR.hdcState <= TempRdCmd3;
          when TempRdCmd3 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 0) <= '0' & '1' & cHdcWriteAddr;
+            nxR.avm.wData(10 downto 8) <= '1' & '0' & '1';
             nxR.avm.write <= cActivated;
             nxR.hdcState <= HumWrCmd1;
          when StartMeasureHum1 =>
@@ -278,7 +279,7 @@ begin
             nxR.hdcState <= HumWrCmd2;
          when HumWrCmd2 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 0) <= '0' & '1' & cHdcHumAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '0' & cHdcHumAddr;
             nxR.avm.write <= cActivated;
             nxR.hdcState <= HumRdCmd1;
          when HumRdCmd1 =>
@@ -288,22 +289,25 @@ begin
             nxR.hdcState <= HumRdCmd2;
          when HumRdCmd2 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 8) <= '0' & '0';
+            nxR.avm.wData(10 downto 8) <= '0' & '0' & '1';
             nxR.avm.write <= cActivated;
             nxR.hdcState <= HumRdCmd3;
          when HumRdCmd3 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 0) <= '0' & '1' & cHdcWriteAddr;
+            nxR.avm.wData(10 downto 8) <= '1' & '0' & '1';
             nxR.avm.write <= cActivated;
 
-            nxR.avm.addr  <= cStatAddr;
+            nxR.hdcState  <= WaitRead1;
+         when WaitRead1 =>
+            nxR.avm.addr  <= cRxFifoLvlAddr;
             nxR.avm.read  <= cActivated;
-            nxR.hdcState  <= WaitRead;
-         when WaitRead =>
-            nxR.avm.addr  <= cStatAddr;
+            nxR.hdcState  <= WaitRead2;
+
+         when WaitRead2 =>
+            nxR.avm.addr  <= cRxFifoLvlAddr;
             nxR.avm.read  <= cActivated;
 
-            if unsigned(avm_m0_readdata) = 4 then
+            if avm_m0_waitrequest = '0' AND unsigned(avm_m0_readdata(23 downto 16)) = 4 then
                nxR.avm.addr <= cRxDataAddr;
                nxR.avm.read <= cActivated;
                nxR.hdcState <= TmpRead1;
@@ -387,7 +391,7 @@ begin
    end process ; -- regProc
 
    avs_s0_readdata  <= std_logic_vector(reg.readdata);
-   avm_m0_address   <= std_logic_vector(reg.avm.addr) & "00";
+   avm_m0_address   <= "00" & std_logic_vector(reg.avm.addr);
    avm_m0_read      <= std_logic(reg.avm.read);
    avm_m0_write     <= std_logic(reg.avm.write);
    avm_m0_writedata <= std_logic_vector(reg.avm.wData);

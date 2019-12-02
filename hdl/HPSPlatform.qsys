@@ -113,6 +113,22 @@
          type = "String";
       }
    }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element clk_0
    {
       datum _sortIndex
@@ -223,7 +239,10 @@
    dir="end" />
  <interface
    name="hmi_subsystemhdc1000_0_i2c_0_i2c"
-   internal="hmi.subsystemhdc1000_0_i2c_0_i2c"
+   internal="hmi.subsystemhdc1000_0_i2c_0_i2c" />
+ <interface
+   name="hmi_subsystemhdc1000_0_i2c_0_i2c_serial"
+   internal="hmi.subsystemhdc1000_0_i2c_0_i2c_serial"
    type="conduit"
    dir="end" />
  <interface
@@ -275,12 +294,6 @@
   <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
   <parameter name="AUTO_GENERATION_ID" value="0" />
-  <parameter name="AUTO_HDC1000_0_CLK_CLOCK_DOMAIN" value="-1" />
-  <parameter name="AUTO_HDC1000_0_CLK_CLOCK_RATE" value="-1" />
-  <parameter name="AUTO_HDC1000_0_CLK_RESET_DOMAIN" value="-1" />
-  <parameter name="AUTO_HDC1000_I2C_0_CLK_CLOCK_DOMAIN" value="-1" />
-  <parameter name="AUTO_HDC1000_I2C_0_CLK_CLOCK_RATE" value="-1" />
-  <parameter name="AUTO_HDC1000_I2C_0_CLK_RESET_DOMAIN" value="-1" />
   <parameter name="AUTO_LEDS_CLK_CLOCK_DOMAIN" value="1" />
   <parameter name="AUTO_LEDS_CLK_CLOCK_RATE" value="50000000" />
   <parameter name="AUTO_LEDS_CLK_RESET_DOMAIN" value="1" />
