@@ -1,4 +1,4 @@
-#include "apds931.h"
+#include "apds9301.h"
 #include "fpga.h"
 #include <iostream>
 #include <sstream>
@@ -7,15 +7,15 @@
 
 
 
-std::string APDS931::getTopic() const {
+std::string APDS9301::getTopic() const {
     static const std::string TOPIC_NAME = "sensors/apds931";
     return TOPIC_NAME;
 }
 
 
-std::optional<APDS931Data> APDS931::doPoll() {
+std::optional<APDS9301Data> APDS9301::doPoll() {
     // TODO
-    std::cout << "APDS931" << std::endl;
+    std::cout << "APDS9301" << std::endl;
     return std::nullopt;
 
 
@@ -24,10 +24,10 @@ std::optional<APDS931Data> APDS931::doPoll() {
     // TODO
     static const int READ_SIZE = 1;
     // static const int OFFSET_TEMPERATURE = 0;
-    // static const int OFFSET_HUMIDITY    = OFFSET_TEMPERATURE + sizeof(APDS931::temperature);
-    // static const int OFFSET_TIMESTAMP   = OFFSET_HUMIDITY + sizeof(APDS931::humidity);
+    // static const int OFFSET_HUMIDITY    = OFFSET_TEMPERATURE + sizeof(APDS9301::temperature);
+    // static const int OFFSET_TIMESTAMP   = OFFSET_HUMIDITY + sizeof(APDS9301::humidity);
 
-    APDS931Data results{};
+    APDS9301Data results{};
     uint8_t readBuf[READ_SIZE];
 
     // lock fpga device using a lock guard
@@ -58,7 +58,7 @@ std::optional<APDS931Data> APDS931::doPoll() {
     return std::make_optional(results);
 }
 
-std::string APDS931Data::toJsonString() const {
+std::string APDS9301Data::toJsonString() const {
     std::stringstream ss;
     ss << "{";
     // TODO

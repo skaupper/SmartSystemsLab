@@ -1,23 +1,23 @@
-#ifndef APDS931_H
-#define APDS931_H
+#ifndef APDS9301_H
+#define APDS9301_H
 
 #include "sensors.h"
 
 
-struct APDS931Data : public Serializable {
+struct APDS9301Data : public Serializable {
     std::string toJsonString() const override;
 
     uint64_t timeStamp;
 };
 
-class APDS931 : public StreamingSensor<APDS931Data> {
+class APDS9301 : public StreamingSensor<APDS9301Data> {
 public:
     using StreamingSensor::StreamingSensor;
 
     std::string getTopic() const override;
 
 protected:
-    std::optional<APDS931Data> doPoll() override;
+    std::optional<APDS9301Data> doPoll() override;
 };
 
-#endif // APDS931_H
+#endif // APDS9301_H

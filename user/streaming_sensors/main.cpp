@@ -2,7 +2,7 @@
 #include "sensors.h"
 #include "hdc1000.h"
 #include "mpu9250.h"
-#include "apds931.h"
+#include "apds9301.h"
 
 #include <mqtt/client.h>
 
@@ -55,25 +55,27 @@ int main() {
     client.connect();
 
     HDC1000 hdc1000(50);
-    // MPU9250 mpu9250(1000);
-    // APDS931 apds931(2.5);
+    MPU9250 mpu9250(1000);
+    APDS9301 apds931(2.5);
 
     // start a thread for each sensor
     std::vector<std::thread> sensorThreads;
     sensorThreads.emplace_back(std::bind(&HDC1000::startPolling, &hdc1000));
-    // sensorThreads.emplace_back(std::bind(&MPU9250::startPolling, &mpu9250));
-    // sensorThreads.emplace_back(std::bind(&APDS931::startPolling, &apds931));
+    sensorThreads.emplace_back(std::bind(&MPU9250::startPolling, &mpu9250));
+    sensorThreads.emplace_back(std::bind(&APDS9301::startPolling, &apds931));
 
 
     while(true) {
         publishSensorData(hdc1000, client);
+        publishSensorData(mpu9250, client);
+        publishSensorData(apds931, client);
         std::this_thread::sleep_for(2000ms);
     }
 
-    hdc1000.stop();
-    // mpu9250.stop();
-    // apds931.stop();
 
+    hdc1000.stop();
+    mpu9250.stop();
+    apds931.stop();
 
     for (auto &&t: sensorThreads) {
         t.join();

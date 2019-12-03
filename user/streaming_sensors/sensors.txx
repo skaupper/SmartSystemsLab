@@ -3,7 +3,6 @@ std::vector<T> StreamingSensor<T>::getQueue() {
     std::lock_guard lck(queueMutex);
     auto result = std::move(*currentQueue);
 
-    // calculate next queue
     currentQueueIndex++;
     currentQueueIndex %= QUEUE_COUNT;
     currentQueue = &queues[currentQueueIndex];
@@ -33,8 +32,6 @@ void StreamingSensor<T>::startPolling() {
         }
         std::this_thread::sleep_for(actualDelay);
     }
-
-    std::cout << "Stopped" << std::endl;
 }
 
 template<class T>
