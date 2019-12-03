@@ -12,8 +12,32 @@
 #include <optional>
 #include <sstream>
 #include <thread>
+#include <functional>
 
 using namespace std::literals::chrono_literals;
+
+
+template<class SENSOR>
+void publishSensorData(SENSOR &sensor, mqtt::client &client) {
+    std::stringstream msg;
+    std::string payloadString;
+
+    msg << "[";
+    auto sensorValues = sensor.getQueue();
+    bool first = true;
+    for (auto &v : sensorValues) {
+        if (!first) {
+            msg << ",";
+        }
+        first = false;
+        msg << v.toJsonString();
+    }
+    msg << "]";
+    payloadString = msg.str();
+    std::cout << payloadString << std::endl;
+
+    client.publish(sensor.getTopic(), payloadString.data(), payloadString.size());
+}
 
 
 int main() {
@@ -29,26 +53,26 @@ int main() {
 
     mqtt::client client(SERVER_URI, CLIENT_ID);
     client.connect();
-    // client.publish(HDC1000_TOPIC, payloadString.data(), payloadString.size());
 
     HDC1000 hdc1000(50);
-    MPU9250 mpu9250(1000);
-    APDS931 apds931(2.5);
+    // MPU9250 mpu9250(1000);
+    // APDS931 apds931(2.5);
 
     // start a thread for each sensor
     std::vector<std::thread> sensorThreads;
     sensorThreads.emplace_back(std::bind(&HDC1000::startPolling, &hdc1000));
-    sensorThreads.emplace_back(std::bind(&MPU9250::startPolling, &mpu9250));
-    sensorThreads.emplace_back(std::bind(&APDS931::startPolling, &apds931));
+    // sensorThreads.emplace_back(std::bind(&MPU9250::startPolling, &mpu9250));
+    // sensorThreads.emplace_back(std::bind(&APDS931::startPolling, &apds931));
 
 
-    // TODO: periodically publish queues
+    while(true) {
+        publishSensorData(hdc1000, client);
+        std::this_thread::sleep_for(2000ms);
+    }
 
-
-    std::this_thread::sleep_for(2000ms);
     hdc1000.stop();
-    mpu9250.stop();
-    apds931.stop();
+    // mpu9250.stop();
+    // apds931.stop();
 
 
     for (auto &&t: sensorThreads) {

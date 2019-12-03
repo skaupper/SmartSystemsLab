@@ -12,19 +12,17 @@ std::string HDC1000::getTopic() const {
 }
 
 std::optional<HDC1000Data> HDC1000::doPoll() {
-    // TODO
-    std::cout << "HDC1000" << std::endl;
-    return std::nullopt;
-
-
     static const std::string CHARACTER_DEVICE = "/dev/hdc1000";
 
     static const int READ_SIZE = 12;
     static const int OFFSET_TEMPERATURE = 0;
-    static const int OFFSET_HUMIDITY    = OFFSET_TEMPERATURE + sizeof(HDC1000Data::temperature);
-    static const int OFFSET_TIMESTAMP   = OFFSET_HUMIDITY + sizeof(HDC1000Data::humidity);
+    static const int OFFSET_HUMIDITY    = OFFSET_TEMPERATURE + 2;
+    static const int OFFSET_TIMESTAMP   = OFFSET_HUMIDITY + 2;
 
     HDC1000Data results;
+    uint16_t temperature;
+    uint16_t humidity;
+    uint32_t timeStamp;
     uint8_t readBuf[READ_SIZE];
 
     // lock fpga device using a lock guard
@@ -44,10 +42,16 @@ std::optional<HDC1000Data> HDC1000::doPoll() {
     }
 
     // copy sensor values to struct
-    memcpy(&results.temperature, readBuf + OFFSET_TEMPERATURE, sizeof(results.temperature));
-    memcpy(&results.humidity,    readBuf + OFFSET_HUMIDITY,    sizeof(results.humidity));
-    memcpy(&results.timeStamp,   readBuf + OFFSET_TIMESTAMP,   sizeof(results.timeStamp));
+    memcpy(&temperature, readBuf + OFFSET_TEMPERATURE, sizeof(temperature));
+    memcpy(&humidity,    readBuf + OFFSET_HUMIDITY,    sizeof(humidity));
+    memcpy(&timeStamp,   readBuf + OFFSET_TIMESTAMP,   sizeof(timeStamp));
 
+
+
+    results.timeStamp = TimeStampingUnit::getResolvedTimeStamp(timeStamp);
+    // calculations according to the datasheet
+    results.humidity = (humidity * 100) / 65536.;
+    results.temperature = (temperature * 165) / 65536. - 40;
 
     // close character device
     (void) fclose(fd);
@@ -60,7 +64,7 @@ std::string HDC1000Data::toJsonString() const {
     ss << "{";
     ss << "\"tmp\":"        << temperature << ",";
     ss << "\"hum\":"        << humidity    << ",";
-    ss << "\"timestamp\":"  << TimeStampingUnit::getResolvedTimeStamp(timeStamp);
+    ss << "\"timestamp\":"  << timeStamp;
     ss << "}";
     return ss.str();
 }

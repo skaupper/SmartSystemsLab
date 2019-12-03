@@ -8,8 +8,8 @@ struct HDC1000Data : public Serializable {
     std::string toJsonString() const override;
 
     uint64_t timeStamp;
-    uint16_t temperature;
-    uint16_t humidity;
+    double temperature;
+    double humidity;
 };
 
 class HDC1000 : public StreamingSensor<HDC1000Data> {

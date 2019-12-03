@@ -1,4 +1,4 @@
-APP_NAME=hdc1000
+APP_NAME=streaming_sensors
 
 CPPFLAGS=-Wall -Werror -pedantic -std=c++17 -O2 -g
 # Attention: the lib diretory where the MQTT is installed into may not be in the LD path!
