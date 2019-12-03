@@ -1,5 +1,5 @@
 /*
- * Terasic DE1-SoC Sensor Driver for APDS9301 Ambient Light Photo Sensor
+ * Terasic DE1-SoC Sensor Driver for MPU9250 Gyroscope/Accelerometer/Magnetometer Sensor
  *
  * Copyright (C) 2019 Michael Wurm <michael.wurm@students.fh-hagenberg.at>
  *
@@ -21,7 +21,7 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 
-#define DRIVER_NAME "apds9301"
+#define DRIVER_NAME "mpu9250"
 
 #define NUM_BYTE_DATA 2
 #define NUM_BYTE_TIMESTAMP 8
@@ -116,7 +116,7 @@ static int dev_probe(struct platform_device *pdev)
     return retval;
   }
 
-  dev_info(&pdev->dev, "APDS9301 Ambient Light Photo Sensor driver loaded!");
+  dev_info(&pdev->dev, "MPU9250 Gyroscope/Accelerometer/Magnetometer Sensor driver loaded!");
 
   return 0;
 }
@@ -133,7 +133,7 @@ static int dev_remove(struct platform_device *pdev)
 
 static const struct of_device_id dev_of_match[] = {
     {
-        .compatible = "goe,apds9301-1.0",
+        .compatible = "goe,mpu9250-1.0",
     },
     {},
 };
@@ -152,5 +152,5 @@ static struct platform_driver dev_driver = {
 module_platform_driver(dev_driver);
 
 MODULE_AUTHOR("M.Wurm");
-MODULE_DESCRIPTION("Altera/Terasic APDS9301 Ambient Light Photo Sensor driver");
+MODULE_DESCRIPTION("Altera/Terasic MPU9250 Gyroscope/Accelerometer/Magnetometer Sensor driver");
 MODULE_LICENSE("GPL v2");
