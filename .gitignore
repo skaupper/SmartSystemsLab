@@ -9,6 +9,9 @@ hdl/scripts/*.sh
 !hdl/top.qsf
 !hdl/top.vhd
 !hdl/HPSPlatform.qsys
+hdl/scripts/*
+!hdl/scripts/*.bat
+!hdl/scripts/*.sh
 
 drivers/**/*.o
 drivers/**/*.cmd
@@ -21,3 +24,9 @@ drivers/**/.tmp_versions/
 
 user/**/*.o
 user/show_ip/show_ip
+
+work/
+transcript
+*.wlf
+*~
+.qsys_edit/

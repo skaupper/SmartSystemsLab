@@ -65,6 +65,70 @@
          type = "String";
       }
    }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element clk_0
    {
       datum _sortIndex
@@ -83,6 +147,11 @@
    }
    element hmi.leds_s1
    {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
       datum baseAddress
       {
          value = "1040";
@@ -91,14 +160,37 @@
    }
    element hmi.seven_segment_s0
    {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
       datum baseAddress
       {
          value = "0";
          type = "String";
       }
    }
+   element hmi.subsystemhdc1000_0_s0
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "1056";
+         type = "String";
+      }
+   }
    element hmi.switches_s1
    {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
       datum baseAddress
       {
          value = "1024";
@@ -127,7 +219,7 @@
  <parameter name="hideFromIPCatalog" value="false" />
  <parameter name="lockedInterfaceDefinition" value="" />
  <parameter name="maxAdditionalLatency" value="1" />
- <parameter name="projectName" value="template.qpf" />
+ <parameter name="projectName" value="top.qpf" />
  <parameter name="sopcBorderPoints" value="false" />
  <parameter name="systemHash" value="0" />
  <parameter name="testBenchDutName" value="" />
@@ -136,6 +228,23 @@
  <instanceScript></instanceScript>
  <interface name="clk" internal="clk_0.clk_in" type="clock" dir="end" />
  <interface name="h2f_reset" internal="hps_0.h2f_reset" type="reset" dir="start" />
+ <interface name="hdc1000_0_hdcrdy" internal="hmi.hdc1000_0_hdcrdy" />
+ <interface
+   name="hdc1000_i2c_0_i2c_serial"
+   internal="hmi.hdc1000_i2c_0_i2c_serial" />
+ <interface
+   name="hmi_subsystemhdc1000_0_hdcrdy"
+   internal="hmi.subsystemhdc1000_0_hdcrdy"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="hmi_subsystemhdc1000_0_i2c_0_i2c"
+   internal="hmi.subsystemhdc1000_0_i2c_0_i2c" />
+ <interface
+   name="hmi_subsystemhdc1000_0_i2c_0_i2c_serial"
+   internal="hmi.subsystemhdc1000_0_i2c_0_i2c_serial"
+   type="conduit"
+   dir="end" />
  <interface
    name="hps_0_f2h_cold_reset_req"
    internal="hps_0.f2h_cold_reset_req"
@@ -191,6 +300,9 @@
   <parameter name="AUTO_SEVEN_SEGMENT_CLOCK_CLOCK_DOMAIN" value="1" />
   <parameter name="AUTO_SEVEN_SEGMENT_CLOCK_CLOCK_RATE" value="50000000" />
   <parameter name="AUTO_SEVEN_SEGMENT_CLOCK_RESET_DOMAIN" value="1" />
+  <parameter name="AUTO_SUBSYSTEMHDC1000_0_CLK_CLOCK_DOMAIN" value="1" />
+  <parameter name="AUTO_SUBSYSTEMHDC1000_0_CLK_CLOCK_RATE" value="50000000" />
+  <parameter name="AUTO_SUBSYSTEMHDC1000_0_CLK_RESET_DOMAIN" value="1" />
   <parameter name="AUTO_SWITCHES_CLK_CLOCK_DOMAIN" value="1" />
   <parameter name="AUTO_SWITCHES_CLK_CLOCK_RATE" value="50000000" />
   <parameter name="AUTO_SWITCHES_CLK_RESET_DOMAIN" value="1" />
@@ -748,6 +860,15 @@
    kind="avalon"
    version="18.1"
    start="hps_0.h2f_lw_axi_master"
+   end="hmi.subsystemhdc1000_0_s0">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0420" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="18.1"
+   start="hps_0.h2f_lw_axi_master"
    end="hmi.switches_s1">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0400" />
@@ -774,6 +895,11 @@
    version="18.1"
    start="clk_0.clk"
    end="hmi.seven_segment_clock" />
+ <connection
+   kind="clock"
+   version="18.1"
+   start="clk_0.clk"
+   end="hmi.subsystemhdc1000_0_clk" />
  <connection kind="clock" version="18.1" start="clk_0.clk" end="hmi.switches_clk" />
  <connection
    kind="reset"
@@ -785,6 +911,11 @@
    version="18.1"
    start="clk_0.clk_reset"
    end="hmi.seven_segment_reset" />
+ <connection
+   kind="reset"
+   version="18.1"
+   start="clk_0.clk_reset"
+   end="hmi.subsystemhdc1000_0_reset" />
  <connection
    kind="reset"
    version="18.1"
