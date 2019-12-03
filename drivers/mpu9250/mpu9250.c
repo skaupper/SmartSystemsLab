@@ -32,6 +32,19 @@
 #define MEM_OFFSET_TIMESTAMP_LOW (0x4)
 #define MEM_OFFSET_TIMESTAMP_HIGH (0x8)
 
+// Vorschlag zur Änderung:
+// 0 [15:00]: Gyro X
+// 1 [15:00]: Gyro Y
+// 2 [15:00]: Gyro Z
+// 3 [15:00]: Beschleunigung X
+// 4 [15:00]: Beschleunigung Y
+// 5 [15:00]: Beschleunigung Z
+// 6 [15:00]: Magnetometer X
+// 7 [15:00]: Magnetometer Y
+// 8 [15:00]: Magnetometer Z
+// 9 [31:00]: Timestamp[31:0]
+// 10 [31:00]: Timestamp[64:32]
+
 struct data
 {
   void *regs;
