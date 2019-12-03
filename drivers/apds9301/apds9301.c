@@ -1,5 +1,5 @@
 /*
- * Terasic DE1-SoC Sensor Driver for HDC1000 Temperature/Humidity Sensor
+ * Terasic DE1-SoC Sensor Driver for APDS9301 Ambient Light Photo Sensor
  *
  * Copyright (C) 2019 Michael Wurm <michael.wurm@students.fh-hagenberg.at>
  *
@@ -21,7 +21,7 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 
-#define DRIVER_NAME "hdc1000"
+#define DRIVER_NAME "apds9301"
 
 #define NUM_BYTE_DATA 4
 #define NUM_BYTE_TIMESTAMP 8
@@ -32,7 +32,7 @@
 #define MEM_OFFSET_TIMESTAMP_LOW (0x4)
 #define MEM_OFFSET_TIMESTAMP_HIGH (0x8)
 
-struct humid_temp
+struct data
 {
   void *regs;
   char buffer[BUF_SIZE];
@@ -43,11 +43,11 @@ struct humid_temp
 /*
  * @brief This function gets executed on fread.
  */
-static int humid_temp_read(struct file *filep, char *buf, size_t count,
-                           loff_t *offp)
+static int dev_read(struct file *filep, char *buf, size_t count,
+                    loff_t *offp)
 {
-  struct humid_temp *dev = container_of(filep->private_data,
-                                        struct humid_temp, misc);
+  struct data *dev = container_of(filep->private_data,
+                                  struct data, misc);
   unsigned int rdata;
 
   /* check out of bound access */
@@ -86,13 +86,13 @@ static int humid_temp_read(struct file *filep, char *buf, size_t count,
   return count;
 }
 
-static const struct file_operations humid_temp_fops = {
+static const struct file_operations dev_fops = {
     .owner = THIS_MODULE,
-    .read = humid_temp_read};
+    .read = dev_read};
 
 static int dev_probe(struct platform_device *pdev)
 {
-  struct humid_temp *dev;
+  struct data *dev;
   struct resource *io;
   int retval;
 
@@ -109,7 +109,7 @@ static int dev_probe(struct platform_device *pdev)
   dev->size = io->end - io->start + 1;
   dev->misc.name = DRIVER_NAME;
   dev->misc.minor = MISC_DYNAMIC_MINOR;
-  dev->misc.fops = &humid_temp_fops;
+  dev->misc.fops = &dev_fops;
   dev->misc.parent = &pdev->dev;
   retval = misc_register(&dev->misc);
   if (retval)
@@ -118,14 +118,14 @@ static int dev_probe(struct platform_device *pdev)
     return retval;
   }
 
-  dev_info(&pdev->dev, "HDC1000 Humidity/Temperature driver loaded!");
+  dev_info(&pdev->dev, "APDS9301 Ambient Light Photo Sensor driver loaded!");
 
   return 0;
 }
 
 static int dev_remove(struct platform_device *pdev)
 {
-  struct humid_temp *dev = platform_get_drvdata(pdev);
+  struct data *dev = platform_get_drvdata(pdev);
 
   misc_deregister(&dev->misc);
   platform_set_drvdata(pdev, NULL);
@@ -133,26 +133,26 @@ static int dev_remove(struct platform_device *pdev)
   return 0;
 }
 
-static const struct of_device_id humid_temp_of_match[] = {
+static const struct of_device_id dev_of_match[] = {
     {
-        .compatible = "goe,humid_temp-1.0",
+        .compatible = "goe,apds9301-1.0",
     },
     {},
 };
-MODULE_DEVICE_TABLE(of, humid_temp_of_match);
+MODULE_DEVICE_TABLE(of, dev_of_match);
 
-static struct platform_driver humid_temp_driver = {
+static struct platform_driver dev_driver = {
     .driver = {
         .name = DRIVER_NAME,
         .owner = THIS_MODULE,
-        .of_match_table = of_match_ptr(humid_temp_of_match),
+        .of_match_table = of_match_ptr(dev_of_match),
     },
     .probe = dev_probe,
     .remove = dev_remove,
 };
 
-module_platform_driver(humid_temp_driver);
+module_platform_driver(dev_driver);
 
 MODULE_AUTHOR("M.Wurm");
-MODULE_DESCRIPTION("Altera/Terasic HDC1000 Humidity/Temperature driver");
+MODULE_DESCRIPTION("Altera/Terasic APDS9301 Ambient Light Photo Sensor driver");
 MODULE_LICENSE("GPL v2");
