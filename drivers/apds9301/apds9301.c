@@ -23,7 +23,7 @@
 
 #define DRIVER_NAME "apds9301"
 
-#define NUM_BYTE_DATA 4
+#define NUM_BYTE_DATA 2
 #define NUM_BYTE_TIMESTAMP 8
 
 #define BUF_SIZE (NUM_BYTE_DATA + NUM_BYTE_TIMESTAMP)
@@ -59,23 +59,21 @@ static int dev_read(struct file *filep, char *buf, size_t count,
     count = BUF_SIZE - *offp;
 
   /* read data from FPGA and store into kernel space buffer */
-  rdata = ioread32(dev->regs + MEM_OFFSET_DATA);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA);
   dev->buffer[0] = ((rdata & 0x000000FF) >> 0);
   dev->buffer[1] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[2] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[3] = ((rdata & 0xFF000000) >> 24);
 
   rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
-  dev->buffer[4] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[5] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[6] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[7] = ((rdata & 0xFF000000) >> 24);
+  dev->buffer[2] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[3] = ((rdata & 0x0000FF00) >> 8);
+  dev->buffer[4] = ((rdata & 0x00FF0000) >> 16);
+  dev->buffer[5] = ((rdata & 0xFF000000) >> 24);
 
   rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
-  dev->buffer[8] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[9] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[10] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[11] = ((rdata & 0xFF000000) >> 24);
+  dev->buffer[6] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[7] = ((rdata & 0x0000FF00) >> 8);
+  dev->buffer[8] = ((rdata & 0x00FF0000) >> 16);
+  dev->buffer[9] = ((rdata & 0xFF000000) >> 24);
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
