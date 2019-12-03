@@ -95,7 +95,7 @@ PORT(
     RH_TEMP_DRDY_n      : in    std_ulogic;
     RH_TEMP_I2C_SCL     : inout std_logic;
     RH_TEMP_I2C_SDA     : inout std_logic;
-    TMD_D               : out   std_logic_vector(7 downto 0)
+    TMD_D               : out   std_logic_vector(7 downto 0);
     --UART2USB_CTS      : in    std_logic;
     --UART2USB_RTS      : out   std_logic;
     --UART2USB_RX       : in    std_logic;
@@ -107,7 +107,7 @@ PORT(
     --WIFI_UART0_RX     : in    std_logic;
     --WIFI_UART0_TX     : out   std_logic;
     --WIFI_UART1_RX     : in    std_logic
-
+    GPIO_0              : out   std_logic_vector(35 downto 0)
 );
 
 END ENTITY;
@@ -198,6 +198,15 @@ ARCHITECTURE MAIN OF top IS
         );
     end component HPSPlatform;
 
+    component i2c_io_buf
+    PORT
+    (
+        datain  : IN STD_LOGIC_VECTOR (1 DOWNTO 0);
+        oe      : IN STD_LOGIC_VECTOR (1 DOWNTO 0);
+        dataio  : INOUT STD_LOGIC_VECTOR (1 DOWNTO 0);
+        dataout	: OUT STD_LOGIC_VECTOR (1 DOWNTO 0)
+    );
+    end component;
 
 
    signal HPS_H2F_RST : std_logic;
@@ -211,13 +220,18 @@ ARCHITECTURE MAIN OF top IS
    signal test : std_logic;
    signal key_reset_sync : std_logic_vector(sync_levels downto 0);
 
+   signal i2c_serial_sda_in : std_logic;
+   signal i2c_serial_scl_in : std_logic;
+   signal i2c_serial_sda_oe : std_logic;
+   signal i2c_serial_scl_oe : std_logic;
+
 BEGIN
 
 
 u0 : component HPSPlatform
         port map (
             clk_clk                         => CLOCK_50,                         --                     clk.clk
-            reset_reset_n                   => HPS_H2F_RST AND key_reset_sync(0),                   --                   reset.reset_n
+            reset_reset_n                   => key_reset_sync(0),                   --                   reset.reset_n
             memory_mem_a                    => HPS_DDR3_ADDR,                    --                  memory.mem_a
             memory_mem_ba                   => HPS_DDR3_BA,                   --                        .mem_ba
             memory_mem_ck                   => HPS_DDR3_CK_P,                   --                        .mem_ck
@@ -302,10 +316,10 @@ u0 : component HPSPlatform
             seven_segment_conduit_end_export(6+7*5 downto  7*5)    => HEX5,
 
             hmi_subsystemhdc1000_0_hdcrdy_interrupt           => RH_TEMP_DRDY_n,           --             hdc1000_0_hdcrdy.interrupt
-            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_sda_in      => RH_TEMP_I2C_SDA,      --     hdc1000_i2c_0_i2c_serial.sda_in
-            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_scl_in      => RH_TEMP_I2C_SCL,      --                             .scl_in
-            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_sda_oe      => RH_TEMP_I2C_SDA,      --                             .sda_oe
-            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_scl_oe      => RH_TEMP_I2C_SCL       --                             .scl_oe
+            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_sda_in      => i2c_serial_sda_in,      --     hdc1000_i2c_0_i2c_serial.sda_in
+            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_scl_in      => i2c_serial_scl_in,      --                             .scl_in
+            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_sda_oe      => i2c_serial_sda_oe,      --                             .sda_oe
+            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_scl_oe      => i2c_serial_scl_oe       --                             .scl_oe
         );
 
     key_sync : process( CLOCK_50, HPS_H2F_RST, SW(0) )
@@ -318,7 +332,21 @@ u0 : component HPSPlatform
         end if;
     end process; -- key_sync
 
+    i2c_io : component i2c_io_buf
+        port map (
+            datain     => (others => '0'),
+            oe(1)      => i2c_serial_scl_oe,
+            oe(0)      => i2c_serial_sda_oe,
+            dataout(1) => i2c_serial_scl_in,
+            dataout(0) => i2c_serial_sda_in,
+            dataio(1)  => RH_TEMP_I2C_SCL,
+            dataio(0)  => RH_TEMP_I2C_SDA);
+
     LEDR(0) <= HPS_H2F_RST AND key_reset_sync(0);
     LEDR(LEDR'high downto 1) <= (others => '0');
+
+    GPIO_0(0) <= RH_TEMP_DRDY_n;
+    GPIO_0(1) <= RH_TEMP_I2C_SCL;
+    GPIO_0(2) <= RH_TEMP_I2C_SDA;
 
 END ARCHITECTURE;

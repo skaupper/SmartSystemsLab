@@ -25,15 +25,17 @@ architecture bhv of tbHdc1000 is
    signal avs_s0_readdata  : std_logic_vector(31 downto 0);                    --       .readdata
    signal avs_s0_write     : std_logic                     := '0';             --       .write
    signal avs_s0_writedata : std_logic_vector(31 downto 0) := (others => '0'); --       .writedata
-   signal avs_m0_address   : std_logic_vector( 1 downto 0) := (others => '0'); -- avs_s0.address
-   signal avs_m0_read      : std_logic                     := '0';             --       .read
-   signal avs_m0_readdata  : std_logic_vector(31 downto 0);                    --       .readdata
-   signal avs_m0_write     : std_logic                     := '0';             --       .write
-   signal avs_m0_waitrequest : std_logic                     := '0';             --       .write
-   signal avs_m0_writedata : std_logic_vector(31 downto 0) := (others => '0'); --       .writedata
+   signal avm_m0_address   : std_logic_vector( 5 downto 0) := (others => '0'); -- avs_s0.address
+   signal avm_m0_read      : std_logic                     := '0';             --       .read
+   signal avm_m0_readdata  : std_logic_vector(31 downto 0);                    --       .readdata
+   signal avm_m0_write     : std_logic                     := '0';             --       .write
+   signal avm_m0_waitrequest : std_logic                     := '0';             --       .write
+   signal avm_m0_writedata : std_logic_vector(31 downto 0) := (others => '0'); --       .writedata
    signal clk             : std_logic                      := '0';             --  clock.clk
    signal nRst            : std_logic                      := '0';             --  reset.reset
    signal hdcRdy            : std_logic                      := '0';             --  reset.reset
+   signal sda_in, scl_in : std_logic                      := 'Z';             --  reset.reset
+   signal sda_oe, scl_oe : std_logic                      := 'Z';             --  reset.reset
 begin
 
    nRst <= '1' after 20 ns;
@@ -41,22 +43,22 @@ begin
 
    Dut : entity work.hdc1000
    generic map (
-      gClkFrequency => 10000)
+      gClkFrequency => 5000)
    port map (
       avs_s0_address   => avs_s0_address,
       avs_s0_read      => avs_s0_read,
       avs_s0_readdata  => avs_s0_readdata,
       avs_s0_write     => avs_s0_write,
       avs_s0_writedata => avs_s0_writedata,
-      avs_m0_address   => avs_m0_address,
-      avs_m0_read      => avs_m0_read,
-      avs_m0_readdata  => avs_m0_readdata,
-      avs_m0_write     => avs_m0_write,
-      avs_m0_waitrequest     => avs_m0_waitrequest,
-      avs_m0_writedata => avs_m0_writedata,
+      avm_m0_address   => avm_m0_address,
+      avm_m0_read      => avm_m0_read,
+      avm_m0_readdata  => avm_m0_readdata,
+      avm_m0_write     => avm_m0_write,
+      avm_m0_waitrequest => avm_m0_waitrequest,
+      avm_m0_writedata => avm_m0_writedata,
       iClk             => clk,
       inRst            => nRst,
-      iHdcRdy            => hdcRdy);
+      iHdcRdy          => hdcRdy);
 
    test_proc : process
    begin
