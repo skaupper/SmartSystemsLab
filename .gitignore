@@ -1,4 +1,7 @@
 hdl/*
+hdl/scripts/*
+hdl/scripts/*.bat
+hdl/scripts/*.sh
 !hdl/scripts/
 !hdl/ip/
 !hdl/components/
@@ -10,18 +13,20 @@ hdl/scripts/*
 !hdl/scripts/*.bat
 !hdl/scripts/*.sh
 
-drivers/**/
-!drivers/**/*.c
-!drivers/**/Makefile
+drivers/**/*.o
+drivers/**/*.cmd
+drivers/**/*.o.cmd
+drivers/**/*.symvers
+drivers/**/*.order
+drivers/**/*.ko
+drivers/**/*.mod.c
+drivers/**/.tmp_versions/
 
-user/**/
-!user/**/*.cpp
-!user/**/*.h
-!user/**/Makefile
+user/**/*.o
+user/show_ip/show_ip
 
 work/
 transcript
 *.wlf
 *~
-
-hdl/ip/.qsys_edit/
+.qsys_edit/
