@@ -1,5 +1,8 @@
 #include "fpga.h"
 #include "sensors.h"
+#include "hdc1000.h"
+#include "mpu9250.h"
+#include "apds931.h"
 
 #include <mqtt/client.h>
 
@@ -8,9 +11,9 @@
 #include <chrono>
 #include <optional>
 #include <sstream>
+#include <thread>
 
 using namespace std::literals::chrono_literals;
-
 
 
 int main() {
@@ -26,29 +29,30 @@ int main() {
 
     mqtt::client client(SERVER_URI, CLIENT_ID);
     client.connect();
+    // client.publish(HDC1000_TOPIC, payloadString.data(), payloadString.size());
+
+    HDC1000 hdc1000(50);
+    MPU9250 mpu9250(1000);
+    APDS931 apds931(2.5);
+
+    // start a thread for each sensor
+    std::vector<std::thread> sensorThreads;
+    sensorThreads.emplace_back(std::bind(&HDC1000::startPolling, &hdc1000));
+    sensorThreads.emplace_back(std::bind(&MPU9250::startPolling, &mpu9250));
+    sensorThreads.emplace_back(std::bind(&APDS931::startPolling, &apds931));
 
 
-
-    while(1) {
-        std::this_thread::sleep_for(1000ms);
-
-        auto optValues = readFromCDev();
-        if (!optValues.has_value()) {
-            continue;
-        }
+    // TODO: periodically publish queues
 
 
-        if (auto result = HDC1000::readFromCDev(); result.has_value()) {
-            auto value = result.value();
-            auto payload = value.toJsonString();
-            client.publish(HDC1000::getSensorTopic(), payload.data(), payload.size());
-        }
+    std::this_thread::sleep_for(2000ms);
+    hdc1000.stop();
+    mpu9250.stop();
+    apds931.stop();
 
-        auto values = optValues.value();
-        auto payloadString = constructPayloadString(values);
 
-        client.publish(HDC1000_TOPIC, payloadString.data(), payloadString.size());
+    for (auto &&t: sensorThreads) {
+        t.join();
     }
-
     return 0;
 }

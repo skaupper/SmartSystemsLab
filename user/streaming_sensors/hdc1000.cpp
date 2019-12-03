@@ -1,19 +1,30 @@
-#include "sensors.h"
+#include "hdc1000.h"
+#include "fpga.h"
+#include <iostream>
+#include <sstream>
+#include <cstring>
+#include "tsu.h"
 
 
-
-std::string HDC1000::getSensorTopic() {
+std::string HDC1000::getTopic() const {
+    static const std::string TOPIC_NAME = "sensors/hdc1000";
     return TOPIC_NAME;
 }
 
+std::optional<HDC1000Data> HDC1000::doPoll() {
+    // TODO
+    std::cout << "HDC1000" << std::endl;
+    return std::nullopt;
 
-std::optional<HDC1000> HDC1000::readFromCDev() {
+
+    static const std::string CHARACTER_DEVICE = "/dev/hdc1000";
+
     static const int READ_SIZE = 12;
     static const int OFFSET_TEMPERATURE = 0;
-    static const int OFFSET_HUMIDITY    = OFFSET_TEMPERATURE + sizeof(HDC1000::temperature);
-    static const int OFFSET_TIMESTAMP   = OFFSET_HUMIDITY + sizeof(HDC1000::humidity);
+    static const int OFFSET_HUMIDITY    = OFFSET_TEMPERATURE + sizeof(HDC1000Data::temperature);
+    static const int OFFSET_TIMESTAMP   = OFFSET_HUMIDITY + sizeof(HDC1000Data::humidity);
 
-    HDC1000 results;
+    HDC1000Data results;
     uint8_t readBuf[READ_SIZE];
 
     // lock fpga device using a lock guard
@@ -44,12 +55,12 @@ std::optional<HDC1000> HDC1000::readFromCDev() {
     return std::make_optional(results);
 }
 
-std::string HDC1000::toJsonString() {
+std::string HDC1000Data::toJsonString() const {
     std::stringstream ss;
     ss << "{";
     ss << "\"tmp\":"        << temperature << ",";
     ss << "\"hum\":"        << humidity    << ",";
-    ss << "\"timestamp\":"  << timeStamp;
+    ss << "\"timestamp\":"  << TimeStampingUnit::getResolvedTimeStamp(timeStamp);
     ss << "}";
     return ss.str();
 }

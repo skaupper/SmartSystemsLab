@@ -1,4 +1,4 @@
-#include "mpu9250.h"
+#include "apds931.h"
 #include "fpga.h"
 #include <iostream>
 #include <sstream>
@@ -7,28 +7,27 @@
 
 
 
-std::string MPU9250::getTopic() const {
-    static const std::string TOPIC_NAME = "sensors/mpu9250";
+std::string APDS931::getTopic() const {
+    static const std::string TOPIC_NAME = "sensors/apds931";
     return TOPIC_NAME;
 }
 
 
-std::optional<MPU9250Data> MPU9250::doPoll() {
+std::optional<APDS931Data> APDS931::doPoll() {
     // TODO
-    return std::nullopt;
-    std::cout << "MPU9250" << std::endl;
+    std::cout << "APDS931" << std::endl;
     return std::nullopt;
 
 
-    static const std::string CHARACTER_DEVICE = "/dev/mpu9250";
+    static const std::string CHARACTER_DEVICE = "/dev/apds931";
 
     // TODO
     static const int READ_SIZE = 1;
     // static const int OFFSET_TEMPERATURE = 0;
-    // static const int OFFSET_HUMIDITY    = OFFSET_TEMPERATURE + sizeof(MPU9250::temperature);
-    // static const int OFFSET_TIMESTAMP   = OFFSET_HUMIDITY + sizeof(MPU9250::humidity);
+    // static const int OFFSET_HUMIDITY    = OFFSET_TEMPERATURE + sizeof(APDS931::temperature);
+    // static const int OFFSET_TIMESTAMP   = OFFSET_HUMIDITY + sizeof(APDS931::humidity);
 
-    MPU9250Data results{};
+    APDS931Data results{};
     uint8_t readBuf[READ_SIZE];
 
     // lock fpga device using a lock guard
@@ -59,7 +58,7 @@ std::optional<MPU9250Data> MPU9250::doPoll() {
     return std::make_optional(results);
 }
 
-std::string MPU9250Data::toJsonString() const {
+std::string APDS931Data::toJsonString() const {
     std::stringstream ss;
     ss << "{";
     // TODO
