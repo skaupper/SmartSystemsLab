@@ -23,27 +23,21 @@
 
 #define DRIVER_NAME "mpu9250"
 
-#define NUM_BYTE_DATA 2
+#define NUM_BYTE_DATA (2 * 3 * 3)
 #define NUM_BYTE_TIMESTAMP 8
-
 #define BUF_SIZE (NUM_BYTE_DATA + NUM_BYTE_TIMESTAMP)
 
-#define MEM_OFFSET_DATA (0x0)
-#define MEM_OFFSET_TIMESTAMP_LOW (0x4)
-#define MEM_OFFSET_TIMESTAMP_HIGH (0x8)
-
-// Vorschlag zur Änderung:
-// 0 [15:00]: Gyro X
-// 1 [15:00]: Gyro Y
-// 2 [15:00]: Gyro Z
-// 3 [15:00]: Beschleunigung X
-// 4 [15:00]: Beschleunigung Y
-// 5 [15:00]: Beschleunigung Z
-// 6 [15:00]: Magnetometer X
-// 7 [15:00]: Magnetometer Y
-// 8 [15:00]: Magnetometer Z
-// 9 [31:00]: Timestamp[31:0]
-// 10 [31:00]: Timestamp[64:32]
+#define MEM_OFFSET_DATA_GYRO_X (0x0)
+#define MEM_OFFSET_DATA_GYRO_Y (0x4)
+#define MEM_OFFSET_DATA_GYRO_Z (0x8)
+#define MEM_OFFSET_DATA_ACCEL_X (0xC)
+#define MEM_OFFSET_DATA_ACCEL_Y (0x10)
+#define MEM_OFFSET_DATA_ACCEL_Z (0x14)
+#define MEM_OFFSET_DATA_MAG_X (0x18)
+#define MEM_OFFSET_DATA_MAG_Y (0x1C)
+#define MEM_OFFSET_DATA_MAG_Z (0x20)
+#define MEM_OFFSET_TIMESTAMP_LOW (0x24)
+#define MEM_OFFSET_TIMESTAMP_HIGH (0x28)
 
 struct data
 {
