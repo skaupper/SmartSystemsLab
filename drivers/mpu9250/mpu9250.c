@@ -66,21 +66,47 @@ static int dev_read(struct file *filep, char *buf, size_t count,
     count = BUF_SIZE - *offp;
 
   /* read data from FPGA and store into kernel space buffer */
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_X);
   dev->buffer[0] = ((rdata & 0x000000FF) >> 0);
   dev->buffer[1] = ((rdata & 0x0000FF00) >> 8);
-
-  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Y);
   dev->buffer[2] = ((rdata & 0x000000FF) >> 0);
   dev->buffer[3] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[4] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[5] = ((rdata & 0xFF000000) >> 24);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Z);
+  dev->buffer[4] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[5] = ((rdata & 0x0000FF00) >> 8);
 
-  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACCEL_X);
   dev->buffer[6] = ((rdata & 0x000000FF) >> 0);
   dev->buffer[7] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[8] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[9] = ((rdata & 0xFF000000) >> 24);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACCEL_Y);
+  dev->buffer[8] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[9] = ((rdata & 0x0000FF00) >> 8);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACCEL_Z);
+  dev->buffer[10] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[11] = ((rdata & 0x0000FF00) >> 8);
+
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_X);
+  dev->buffer[12] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[13] = ((rdata & 0x0000FF00) >> 8);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_Y);
+  dev->buffer[14] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[15] = ((rdata & 0x0000FF00) >> 8);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_Z);
+  dev->buffer[16] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[17] = ((rdata & 0x0000FF00) >> 8);
+
+  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
+  dev->buffer[18] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[19] = ((rdata & 0x0000FF00) >> 8);
+  dev->buffer[20] = ((rdata & 0x00FF0000) >> 16);
+  dev->buffer[21] = ((rdata & 0xFF000000) >> 24);
+
+  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
+  dev->buffer[22] = ((rdata & 0x000000FF) >> 0);
+  dev->buffer[23] = ((rdata & 0x0000FF00) >> 8);
+  dev->buffer[24] = ((rdata & 0x00FF0000) >> 16);
+  dev->buffer[25] = ((rdata & 0xFF000000) >> 24);
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
