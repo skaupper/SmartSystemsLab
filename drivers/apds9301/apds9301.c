@@ -42,7 +42,7 @@ typedef struct
 struct data
 {
   void *regs;
-  char buffer[BUF_SIZE];
+  buffer_t buffer;
   int size;
   struct miscdevice misc;
 };
