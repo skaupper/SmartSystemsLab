@@ -32,6 +32,13 @@
 #define MEM_OFFSET_TIMESTAMP_LOW (0x4)
 #define MEM_OFFSET_TIMESTAMP_HIGH (0x8)
 
+typedef struct
+{
+  uint32_t timestamp_lo;
+  uint32_t timestamp_hi;
+  uint16_t value;
+} buffer_t;
+
 struct data
 {
   void *regs;
@@ -49,6 +56,14 @@ static int dev_read(struct file *filep, char *buf, size_t count,
   struct data *dev = container_of(filep->private_data,
                                   struct data, misc);
   unsigned int rdata;
+  buffer_t tmpBuf;
+
+  if (BUF_SIZE != sizeof(tmpBuf))
+  {
+    printk(KERN_ERR "Data struct buffer_t is not allocated as expected.\n");
+    BUG();
+    return -ENOEXEC;
+  }
 
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
@@ -60,24 +75,14 @@ static int dev_read(struct file *filep, char *buf, size_t count,
 
   /* read data from FPGA and store into kernel space buffer */
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA);
-  dev->buffer[0] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[1] = ((rdata & 0x0000FF00) >> 8);
+  tmpBuf.value = (rdata & 0x0000FFFF);
 
-  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
-  dev->buffer[2] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[3] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[4] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[5] = ((rdata & 0xFF000000) >> 24);
-
-  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
-  dev->buffer[6] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[7] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[8] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[9] = ((rdata & 0xFF000000) >> 24);
+  tmpBuf.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
+  tmpBuf.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
-    count = count - copy_to_user(buf, dev->buffer + *offp, count);
+    count = count - copy_to_user(buf, (char *)&dev->buffer + *offp, count);
 
   *offp += count;
 
