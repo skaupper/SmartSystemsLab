@@ -30,9 +30,9 @@
 #define MEM_OFFSET_DATA_GYRO_X (0x0)
 #define MEM_OFFSET_DATA_GYRO_Y (0x4)
 #define MEM_OFFSET_DATA_GYRO_Z (0x8)
-#define MEM_OFFSET_DATA_ACCEL_X (0xC)
-#define MEM_OFFSET_DATA_ACCEL_Y (0x10)
-#define MEM_OFFSET_DATA_ACCEL_Z (0x14)
+#define MEM_OFFSET_DATA_ACC_X (0xC)
+#define MEM_OFFSET_DATA_ACC_Y (0x10)
+#define MEM_OFFSET_DATA_ACC_Z (0x14)
 #define MEM_OFFSET_DATA_MAG_X (0x18)
 #define MEM_OFFSET_DATA_MAG_Y (0x1C)
 #define MEM_OFFSET_DATA_MAG_Z (0x20)
@@ -46,9 +46,9 @@ typedef struct
   uint16_t gyro_x;
   uint16_t gyro_y;
   uint16_t gyro_z;
-  uint16_t accel_x;
-  uint16_t accel_y;
-  uint16_t accel_z;
+  uint16_t acc_x;
+  uint16_t acc_y;
+  uint16_t acc_z;
   uint16_t mag_x;
   uint16_t mag_y;
   uint16_t mag_z;
@@ -91,12 +91,12 @@ static int dev_read(struct file *filep, char *buf, size_t count,
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Z);
   tmpBuf.gyro_z = (rdata & 0x0000FFFF);
 
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACCEL_X);
-  tmpBuf.accel_x = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACCEL_Y);
-  tmpBuf.accel_y = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACCEL_Z);
-  (tmpBuf.accel_z = (rdata & 0x0000FFFF));
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_X);
+  tmpBuf.acc_x = (rdata & 0x0000FFFF);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_Y);
+  tmpBuf.acc_y = (rdata & 0x0000FFFF);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_Z);
+  (tmpBuf.acc_z = (rdata & 0x0000FFFF));
 
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_X);
   tmpBuf.mag_x = (rdata & 0x0000FFFF);
