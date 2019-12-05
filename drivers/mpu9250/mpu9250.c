@@ -39,10 +39,18 @@
 #define MEM_OFFSET_TIMESTAMP_LOW (0x24)
 #define MEM_OFFSET_TIMESTAMP_HIGH (0x28)
 
+struct buffer
+{
+  u32 timestamp;
+  u32 timestamp;
+  u16 data;
+  ...
+};
+
 struct data
 {
   void *regs;
-  char buffer[BUF_SIZE];
+  struct buffer;
   int size;
   struct miscdevice misc;
 };
@@ -56,6 +64,8 @@ static int dev_read(struct file *filep, char *buf, size_t count,
   struct data *dev = container_of(filep->private_data,
                                   struct data, misc);
   unsigned int rdata;
+
+  assert(BUF_SIZE == sizeof(buffer));
 
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
@@ -110,7 +120,7 @@ static int dev_read(struct file *filep, char *buf, size_t count,
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
-    count = count - copy_to_user(buf, dev->buffer + *offp, count);
+    count = count - copy_to_user(buf, (char *)dev->buffer + *offp, count);
 
   *offp += count;
 
