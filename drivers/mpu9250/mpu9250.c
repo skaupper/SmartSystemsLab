@@ -57,7 +57,7 @@ typedef struct
 struct data
 {
   void *regs;
-  struct buffer;
+  buffer_t buffer;
   int size;
   struct miscdevice misc;
 };
@@ -73,7 +73,12 @@ static int dev_read(struct file *filep, char *buf, size_t count,
   unsigned int rdata;
   buffer_t tmpBuf;
 
-  assert(BUF_SIZE == sizeof(tmpBuf));
+  if (BUF_SIZE != sizeof(tmpBuf))
+  {
+    printk(KERN_ERR "Data struct buffer_t is not allocated as expected.\n");
+    BUG();
+    return -ENOEXEC;
+  }
 
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
@@ -125,7 +130,7 @@ static int dev_read(struct file *filep, char *buf, size_t count,
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
-    count = count - copy_to_user(buf, (char *)dev->buffer + *offp, count);
+    count = count - copy_to_user(buf, (char *)&dev->buffer + *offp, count);
 
   *offp += count;
 
