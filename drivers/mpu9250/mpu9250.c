@@ -39,13 +39,20 @@
 #define MEM_OFFSET_TIMESTAMP_LOW (0x24)
 #define MEM_OFFSET_TIMESTAMP_HIGH (0x28)
 
-struct buffer
+typedef struct
 {
-  u32 timestamp;
-  u32 timestamp;
-  u16 data;
-  ...
-};
+  uint32_t timestamp_lo;
+  uint32_t timestamp_hi;
+  uint16_t gyro_x;
+  uint16_t gyro_y;
+  uint16_t gyro_z;
+  uint16_t accel_x;
+  uint16_t accel_y;
+  uint16_t accel_z;
+  uint16_t mag_x;
+  uint16_t mag_y;
+  uint16_t mag_z;
+} buffer_t;
 
 struct data
 {
@@ -64,8 +71,9 @@ static int dev_read(struct file *filep, char *buf, size_t count,
   struct data *dev = container_of(filep->private_data,
                                   struct data, misc);
   unsigned int rdata;
+  buffer_t tmpBuf;
 
-  assert(BUF_SIZE == sizeof(buffer));
+  assert(BUF_SIZE == sizeof(tmpBuf));
 
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
@@ -77,46 +85,28 @@ static int dev_read(struct file *filep, char *buf, size_t count,
 
   /* read data from FPGA and store into kernel space buffer */
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_X);
-  dev->buffer[0] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[1] = ((rdata & 0x0000FF00) >> 8);
+  tmpBuf.gyro_x = (rdata & 0x0000FFFF);
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Y);
-  dev->buffer[2] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[3] = ((rdata & 0x0000FF00) >> 8);
+  tmpBuf.gyro_y = (rdata & 0x0000FFFF);
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Z);
-  dev->buffer[4] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[5] = ((rdata & 0x0000FF00) >> 8);
+  tmpBuf.gyro_z = (rdata & 0x0000FFFF);
 
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACCEL_X);
-  dev->buffer[6] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[7] = ((rdata & 0x0000FF00) >> 8);
+  tmpBuf.accel_x = (rdata & 0x0000FFFF);
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACCEL_Y);
-  dev->buffer[8] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[9] = ((rdata & 0x0000FF00) >> 8);
+  tmpBuf.accel_y = (rdata & 0x0000FFFF);
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACCEL_Z);
-  dev->buffer[10] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[11] = ((rdata & 0x0000FF00) >> 8);
+  (tmpBuf.accel_z = (rdata & 0x0000FFFF));
 
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_X);
-  dev->buffer[12] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[13] = ((rdata & 0x0000FF00) >> 8);
+  tmpBuf.mag_x = (rdata & 0x0000FFFF);
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_Y);
-  dev->buffer[14] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[15] = ((rdata & 0x0000FF00) >> 8);
+  tmpBuf.mag_y = (rdata & 0x0000FFFF);
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_Z);
-  dev->buffer[16] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[17] = ((rdata & 0x0000FF00) >> 8);
+  tmpBuf.mag_z = (rdata & 0x0000FFFF);
 
-  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
-  dev->buffer[18] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[19] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[20] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[21] = ((rdata & 0xFF000000) >> 24);
-
-  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
-  dev->buffer[22] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[23] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[24] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[25] = ((rdata & 0xFF000000) >> 24);
+  tmpBuf.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
+  tmpBuf.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
