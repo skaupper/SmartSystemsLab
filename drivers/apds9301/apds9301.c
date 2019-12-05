@@ -56,9 +56,8 @@ static int dev_read(struct file *filep, char *buf, size_t count,
   struct data *dev = container_of(filep->private_data,
                                   struct data, misc);
   unsigned int rdata;
-  buffer_t tmpBuf;
 
-  if (BUF_SIZE != sizeof(tmpBuf))
+  if (BUF_SIZE != sizeof(dev->buffer))
   {
     printk(KERN_ERR "Data struct buffer_t is not allocated as expected.\n");
     BUG();
@@ -75,10 +74,10 @@ static int dev_read(struct file *filep, char *buf, size_t count,
 
   /* read data from FPGA and store into kernel space buffer */
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA);
-  tmpBuf.value = (rdata & 0x0000FFFF);
+  dev->buffer.value = (rdata & 0x0000FFFF);
 
-  tmpBuf.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
-  tmpBuf.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
+  dev->buffer.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
+  dev->buffer.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
