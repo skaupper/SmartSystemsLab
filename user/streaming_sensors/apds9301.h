@@ -7,7 +7,12 @@
 struct APDS9301Data : public Serializable {
     std::string toJsonString() const override;
 
-    uint64_t timeStamp;
+    struct
+    {
+        uint32_t timestamp_lo;
+        uint32_t timestamp_hi;
+        uint16_t value;
+    } POD;
 };
 
 class APDS9301 : public StreamingSensor<APDS9301Data> {

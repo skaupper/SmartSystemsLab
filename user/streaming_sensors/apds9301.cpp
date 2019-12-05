@@ -14,21 +14,10 @@ std::string APDS9301::getTopic() const {
 
 
 std::optional<APDS9301Data> APDS9301::doPoll() {
-    // TODO
-    std::cout << "APDS9301" << std::endl;
-    return std::nullopt;
-
-
     static const std::string CHARACTER_DEVICE = "/dev/apds931";
 
-    // TODO
-    static const int READ_SIZE = 1;
-    // static const int OFFSET_TEMPERATURE = 0;
-    // static const int OFFSET_HUMIDITY    = OFFSET_TEMPERATURE + sizeof(APDS9301::temperature);
-    // static const int OFFSET_TIMESTAMP   = OFFSET_HUMIDITY + sizeof(APDS9301::humidity);
-
+    static const int READ_SIZE = sizeof(APDS9301Data::POD);
     APDS9301Data results{};
-    uint8_t readBuf[READ_SIZE];
 
     // lock fpga device using a lock guard
     // the result is never used, but it keeps the mutex locked until it goes out of scope
@@ -41,16 +30,12 @@ std::optional<APDS9301Data> APDS9301::doPoll() {
         return {};
     }
 
-    if (fread(readBuf, READ_SIZE, 1, fd) != 1) {
+    if (fread(&results.POD, READ_SIZE, 1, fd) != 1) {
         std::cerr << "Failed to read sensor values" << std::endl;
         return {};
     }
 
-    // copy sensor values to struct
-    // memcpy(&results.temperature, readBuf + OFFSET_TEMPERATURE, sizeof(results.temperature));
-    // memcpy(&results.humidity,    readBuf + OFFSET_HUMIDITY,    sizeof(results.humidity));
-    // memcpy(&results.timeStamp,   readBuf + OFFSET_TIMESTAMP,   sizeof(results.timeStamp));
-
+    // TODO: transform ADC values to useful units
 
     // close character device
     (void) fclose(fd);
@@ -59,12 +44,12 @@ std::optional<APDS9301Data> APDS9301::doPoll() {
 }
 
 std::string APDS9301Data::toJsonString() const {
+    uint64_t timeStamp = (((uint64_t)POD.timestamp_hi) << 32) | POD.timestamp_lo;
+
     std::stringstream ss;
     ss << "{";
-    // TODO
-    // ss << "\"tmp\":"        << temperature << ",";
-    // ss << "\"hum\":"        << humidity    << ",";
-    ss << "\"timestamp\":"  << TimeStampingUnit::getResolvedTimeStamp(timeStamp);
+    ss << "\"ambient_light\":"  << POD.value << ",";
+    ss << "\"timestamp\":"      << TimeStampingUnit::getResolvedTimeStamp(timeStamp);
     ss << "}";
     return ss.str();
 }

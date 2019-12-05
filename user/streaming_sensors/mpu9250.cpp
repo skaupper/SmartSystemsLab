@@ -6,7 +6,6 @@
 #include "tsu.h"
 
 
-
 std::string MPU9250::getTopic() const {
     static const std::string TOPIC_NAME = "sensors/mpu9250";
     return TOPIC_NAME;
@@ -14,22 +13,10 @@ std::string MPU9250::getTopic() const {
 
 
 std::optional<MPU9250Data> MPU9250::doPoll() {
-    // TODO
-    return std::nullopt;
-    std::cout << "MPU9250" << std::endl;
-    return std::nullopt;
-
-
     static const std::string CHARACTER_DEVICE = "/dev/mpu9250";
 
-    // TODO
-    static const int READ_SIZE = 1;
-    // static const int OFFSET_TEMPERATURE = 0;
-    // static const int OFFSET_HUMIDITY    = OFFSET_TEMPERATURE + sizeof(MPU9250::temperature);
-    // static const int OFFSET_TIMESTAMP   = OFFSET_HUMIDITY + sizeof(MPU9250::humidity);
-
+    static const int READ_SIZE = sizeof(MPU9250Data::POD);
     MPU9250Data results{};
-    uint8_t readBuf[READ_SIZE];
 
     // lock fpga device using a lock guard
     // the result is never used, but it keeps the mutex locked until it goes out of scope
@@ -42,16 +29,13 @@ std::optional<MPU9250Data> MPU9250::doPoll() {
         return {};
     }
 
-    if (fread(readBuf, READ_SIZE, 1, fd) != 1) {
+    // TODO: is this working the way I think it is?
+    if (fread(&results.POD, READ_SIZE, 1, fd) != 1) {
         std::cerr << "Failed to read sensor values" << std::endl;
         return {};
     }
 
-    // copy sensor values to struct
-    // memcpy(&results.temperature, readBuf + OFFSET_TEMPERATURE, sizeof(results.temperature));
-    // memcpy(&results.humidity,    readBuf + OFFSET_HUMIDITY,    sizeof(results.humidity));
-    // memcpy(&results.timeStamp,   readBuf + OFFSET_TIMESTAMP,   sizeof(results.timeStamp));
-
+    // TODO: transform ADC values to useful units
 
     // close character device
     (void) fclose(fd);
@@ -60,11 +44,19 @@ std::optional<MPU9250Data> MPU9250::doPoll() {
 }
 
 std::string MPU9250Data::toJsonString() const {
+    uint64_t timeStamp = (((uint64_t)POD.timestamp_hi) << 32) | POD.timestamp_lo;
+
     std::stringstream ss;
     ss << "{";
-    // TODO
-    // ss << "\"tmp\":"        << temperature << ",";
-    // ss << "\"hum\":"        << humidity    << ",";
+    ss << "\"gyro_x\":"     << POD.gyro_x  << ",";
+    ss << "\"gyro_y\":"     << POD.gyro_y  << ",";
+    ss << "\"gyro_z\":"     << POD.gyro_z  << ",";
+    ss << "\"acc_x\":"      << POD.acc_x   << ",";
+    ss << "\"acc_y\":"      << POD.acc_y   << ",";
+    ss << "\"acc_z\":"      << POD.acc_z   << ",";
+    ss << "\"mag_x\":"      << POD.mag_x   << ",";
+    ss << "\"mag_y\":"      << POD.mag_y   << ",";
+    ss << "\"mag_z\":"      << POD.mag_z   << ",";
     ss << "\"timestamp\":"  << TimeStampingUnit::getResolvedTimeStamp(timeStamp);
     ss << "}";
     return ss.str();

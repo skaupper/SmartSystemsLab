@@ -1,6 +1,6 @@
 APP_NAME=streaming_sensors
 
-CPPFLAGS=-Wall -Werror -pedantic -std=c++17 -O2 -g
+CPPFLAGS=-Wall -Werror -pedantic -std=c++17 -O2 -g -Wno-psabi
 # Attention: the lib diretory where the MQTT is installed into may not be in the LD path!
 LDFLAGS=-lpaho-mqtt3a -lpaho-mqttpp3 -lfpgaregion -lpthread
 
