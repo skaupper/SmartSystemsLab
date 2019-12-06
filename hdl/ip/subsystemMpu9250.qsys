@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system name="$${FILENAME}">
+ <component
+   name="$${FILENAME}"
+   displayName="$${FILENAME}"
+   version="1.0"
+   description=""
+   tags=""
+   categories="" />
+ <parameter name="bonusData"><![CDATA[bonusData 
+{
+   element clock_bridge_0
+   {
+      datum _sortIndex
+      {
+         value = "2";
+         type = "int";
+      }
+   }
+   element mpu9250_0
+   {
+      datum _sortIndex
+      {
+         value = "0";
+         type = "int";
+      }
+   }
+   element reset_bridge_0
+   {
+      datum _sortIndex
+      {
+         value = "3";
+         type = "int";
+      }
+   }
+   element spi_0
+   {
+      datum _sortIndex
+      {
+         value = "1";
+         type = "int";
+      }
+   }
+}
+]]></parameter>
+ <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
+ <parameter name="device" value="5CSEMA5F31C6" />
+ <parameter name="deviceFamily" value="Cyclone V" />
+ <parameter name="deviceSpeedGrade" value="6" />
+ <parameter name="fabricMode" value="QSYS" />
+ <parameter name="generateLegacySim" value="false" />
+ <parameter name="generationId" value="0" />
+ <parameter name="globalResetBus" value="false" />
+ <parameter name="hdlLanguage" value="VERILOG" />
+ <parameter name="hideFromIPCatalog" value="false" />
+ <parameter name="lockedInterfaceDefinition" value="" />
+ <parameter name="maxAdditionalLatency" value="1" />
+ <parameter name="projectName" value="" />
+ <parameter name="sopcBorderPoints" value="false" />
+ <parameter name="systemHash" value="0" />
+ <parameter name="testBenchDutName" value="" />
+ <parameter name="timeStamp" value="0" />
+ <parameter name="useTestBenchNamingPattern" value="false" />
+ <instanceScript></instanceScript>
+ <interface name="clk" internal="clock_bridge_0.in_clk" type="clock" dir="end" />
+ <interface
+   name="reset"
+   internal="reset_bridge_0.in_reset"
+   type="reset"
+   dir="end" />
+ <interface name="s0" internal="mpu9250_0.s0" type="avalon" dir="end" />
+ <interface name="spi" internal="spi_0.external" type="conduit" dir="end" />
+ <module
+   name="clock_bridge_0"
+   kind="altera_clock_bridge"
+   version="18.1"
+   enabled="1">
+  <parameter name="DERIVED_CLOCK_RATE" value="0" />
+  <parameter name="EXPLICIT_CLOCK_RATE" value="0" />
+  <parameter name="NUM_CLOCK_OUTPUTS" value="1" />
+ </module>
+ <module name="mpu9250_0" kind="mpu9250" version="1.0" enabled="1">
+  <parameter name="gClkFrequency" value="100000000" />
+ </module>
+ <module
+   name="reset_bridge_0"
+   kind="altera_reset_bridge"
+   version="18.1"
+   enabled="1">
+  <parameter name="ACTIVE_LOW_RESET" value="1" />
+  <parameter name="AUTO_CLK_CLOCK_RATE" value="0" />
+  <parameter name="NUM_RESET_OUTPUTS" value="1" />
+  <parameter name="SYNCHRONOUS_EDGES" value="deassert" />
+  <parameter name="USE_RESET_REQUEST" value="0" />
+ </module>
+ <module name="spi_0" kind="altera_avalon_spi" version="18.1" enabled="1">
+  <parameter name="avalonSpec" value="2.0" />
+  <parameter name="clockPhase" value="0" />
+  <parameter name="clockPolarity" value="0" />
+  <parameter name="dataWidth" value="8" />
+  <parameter name="disableAvalonFlowControl" value="false" />
+  <parameter name="inputClockRate" value="0" />
+  <parameter name="insertDelayBetweenSlaveSelectAndSClk" value="false" />
+  <parameter name="insertSync" value="false" />
+  <parameter name="lsbOrderedFirst" value="false" />
+  <parameter name="masterSPI" value="true" />
+  <parameter name="numberOfSlaves" value="1" />
+  <parameter name="syncRegDepth" value="2" />
+  <parameter name="targetClockRate" value="128000" />
+  <parameter name="targetSlaveSelectToSClkDelay" value="0.0" />
+ </module>
+ <connection
+   kind="avalon"
+   version="18.1"
+   start="mpu9250_0.m0"
+   end="spi_0.spi_control_port">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="clock"
+   version="18.1"
+   start="clock_bridge_0.out_clk"
+   end="reset_bridge_0.clk" />
+ <connection
+   kind="clock"
+   version="18.1"
+   start="clock_bridge_0.out_clk"
+   end="spi_0.clk" />
+ <connection
+   kind="clock"
+   version="18.1"
+   start="clock_bridge_0.out_clk"
+   end="mpu9250_0.clk" />
+ <connection
+   kind="reset"
+   version="18.1"
+   start="reset_bridge_0.out_reset"
+   end="spi_0.reset" />
+ <connection
+   kind="reset"
+   version="18.1"
+   start="reset_bridge_0.out_reset"
+   end="mpu9250_0.reset" />
+ <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
+ <interconnectRequirement for="$system" name="qsys_mm.enableEccProtection" value="FALSE" />
+ <interconnectRequirement for="$system" name="qsys_mm.insertDefaultSlave" value="FALSE" />
+ <interconnectRequirement for="$system" name="qsys_mm.maxAdditionalLatency" value="1" />
+</system>
