@@ -51,15 +51,14 @@ architecture rtl of hdc1000 is
    constant cTrfrCmdAddr        : std_ulogic_vector(3 downto 0) := X"0";
    constant cRxDataAddr         : std_ulogic_vector(3 downto 0) := X"1";
    constant cCtrlAddr           : std_ulogic_vector(3 downto 0) := X"2";
-   --constant cISERAddr           : std_ulogic_vector(3 downto 0) := X"3";
-   --constant cISRAddr            : std_ulogic_vector(3 downto 0) := X"4";
-   constant cRxFifoLvlAddr      : std_ulogic_vector(3 downto 0) := X"7";
-   --constant cStatAddr           : std_ulogic_vector(3 downto 0) := X"3";
-   --constant cTrfrCmdFifoLvlAddr : std_ulogic_vector(3 downto 0) := X"6";
-   --constant cRxDataFifoLvlAddr  : std_ulogic_vector(3 downto 0) := X"7";
-   constant cSclLowAddr  : std_ulogic_vector(3 downto 0) := X"8";
-   constant cSclHighAddr  : std_ulogic_vector(3 downto 0) := X"9";
-   constant cSclHoldAddr  : std_ulogic_vector(3 downto 0) := X"A";
+   constant cISERAddr           : std_ulogic_vector(3 downto 0) := X"3";
+   constant cISRAddr            : std_ulogic_vector(3 downto 0) := X"4";
+   constant cStatAddr           : std_ulogic_vector(3 downto 0) := X"5";
+   constant cTrfrCmdFifoLvlAddr : std_ulogic_vector(3 downto 0) := X"6";
+   constant cRxDataFifoLvlAddr  : std_ulogic_vector(3 downto 0) := X"7";
+   constant cSclLowAddr         : std_ulogic_vector(3 downto 0) := X"8";
+   constant cSclHighAddr        : std_ulogic_vector(3 downto 0) := X"9";
+   constant cSclHoldAddr        : std_ulogic_vector(3 downto 0) := X"A";
 
    -- I2C Addresses
    constant cHdcReadAddr  : std_ulogic_vector(7 downto 0) := X"81";
@@ -70,7 +69,7 @@ architecture rtl of hdc1000 is
    constant cHdcHumAddr   : std_ulogic_vector(7 downto 0) := X"01";
    constant cHdcCfgAddr   : std_ulogic_vector(7 downto 0) := X"02";
 
-   -- Avalon Adresses
+   -- Avalon Slave Adresses
    constant cAddrData : std_logic_vector(1 downto 0) := "00";
    constant cAddrTsLo : std_logic_vector(1 downto 0) := "01";
    constant cAddrTsUp : std_logic_vector(1 downto 0) := "10";
@@ -87,8 +86,8 @@ architecture rtl of hdc1000 is
    constant cAvmRegSetClear : aAvmRegSet := (
       addr  => (others => '0'),
       wData => (others => '0'),
-      write => '0',
-      read  => '0'
+      write => cInactivated,
+      read  => cInactivated
    );
 
    type aValueSet is record
@@ -125,7 +124,7 @@ architecture rtl of hdc1000 is
    end record;
 
    constant cRegSetClear : aRegSet := (
-      lock      => '0',
+      lock      => cInactivated,
       readdata  => (others => '0'),
       reg       => cValueSetClear,
       counter   => (others => '0'),
@@ -133,7 +132,7 @@ architecture rtl of hdc1000 is
       shadowReg => cValueSetClear,
       avm       => cAvmRegSetClear,
       timestamp => (others => '0'),
-      valid     => '0',
+      valid     => cInactivated,
       hdcState  => Init);
 
    signal msTick   : std_ulogic;
@@ -152,22 +151,22 @@ begin
 
    fsm : process( reg, avs_s0_read, msTick, avs_s0_address, avm_m0_readdata, HdcRdySync, avm_m0_waitrequest )
    begin
-      nxR <= reg;
-      nxR.readdata <= (others => '0');
-      nxR.read <= cInactivated;
+      nxR           <= reg;
+      nxR.readdata  <= (others => '0');
+      nxR.read      <= cInactivated;
       nxR.avm.addr  <= (others => '0');
       nxR.avm.wData <= (others => '0');
-      nxR.avm.read  <= '0';
-      nxR.avm.write <= '0';
+      nxR.avm.read  <= cInactivated;
+      nxR.avm.write <= cInactivated;
       nxR.valid     <= cActivated;
 
       -- Timestamp logic
-      if msTick = '1' then
+      if msTick = cActivated then
          nxR.timestamp <= reg.timestamp + 1;
       end if;
 
       -- Load shadow reg to actual reg
-      if reg.lock = '0' AND reg.valid = '1' then
+      if reg.lock = cInactivated AND reg.valid = cActivated then
          nxR.reg <= reg.shadowReg;
       end if;
 
@@ -286,15 +285,15 @@ begin
             nxR.avm.write <= cActivated;
             nxR.hdcState  <= WaitRead1;
          when WaitRead1 =>
-            nxR.avm.addr  <= cRxFifoLvlAddr;
+            nxR.avm.addr  <= cRxDataFifoLvlAddr;
             nxR.avm.read  <= cActivated;
             nxR.hdcState  <= WaitRead2;
 
          when WaitRead2 =>
-            nxR.avm.addr  <= cRxFifoLvlAddr;
+            nxR.avm.addr  <= cRxDataFifoLvlAddr;
             nxR.avm.read  <= cActivated;
 
-            if avm_m0_waitrequest = '0' AND unsigned(avm_m0_readdata(3 downto 0)) >= 4 then
+            if avm_m0_waitrequest = cInactivated AND unsigned(avm_m0_readdata(3 downto 0)) >= 4 then
                nxR.avm.addr <= cRxDataAddr;
                nxR.avm.read <= cActivated;
                nxR.hdcState <= TmpRead1;
@@ -302,7 +301,7 @@ begin
          when TmpRead1 =>
             nxR.avm.addr <= cRxDataAddr;
             nxR.avm.read <= cActivated;
-            if avm_m0_waitrequest = '0' then
+            if avm_m0_waitrequest = cInactivated then
                nxR.valid    <= cInactivated;
                nxR.shadowReg.temperature(15 downto 8) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
                nxR.hdcState <= TmpRead2;
@@ -311,7 +310,7 @@ begin
             nxR.valid    <= cInactivated;
             nxR.avm.addr <= cRxDataAddr;
             nxR.avm.read <= cActivated;
-            if avm_m0_waitrequest = '0' then
+            if avm_m0_waitrequest = cInactivated then
                nxR.shadowReg.temperature(7 downto 0) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
                nxR.hdcState <= HumRead1;
             end if;
@@ -324,7 +323,7 @@ begin
                nxR.hdcState <= HumRead2;
             end if;
          when HumRead2 =>
-            if avm_m0_waitrequest = '0' then
+            if avm_m0_waitrequest = cInactivated then
                nxR.shadowReg.humidity(7 downto 0) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
                nxR.shadowReg.timestamp <= reg.timestamp;
                nxR.hdcState <= Idle;
@@ -338,19 +337,19 @@ begin
       end case;
 
       -- Bus logic
-      if avs_s0_read = '1' then
+      if avs_s0_read = cActivated then
          case( avs_s0_address ) is
             when cAddrData =>
                nxR.readdata <= reg.reg.humidity & reg.reg.temperature;
-               nxR.lock     <= '1';
+               nxR.lock     <= cActivated;
 
             when cAddrTsLo =>
                nxR.readdata <= std_ulogic_vector(reg.reg.timestamp(31 downto 0));
-               nxR.lock     <= '1';
+               nxR.lock     <= cActivated;
 
             when cAddrTsUp =>
                nxR.readdata <= std_ulogic_vector(reg.reg.timestamp(63 downto 32));
-               nxR.lock     <= '0';
+               nxR.lock     <= cInactivated;
 
             when others =>
                null;
@@ -360,7 +359,7 @@ begin
 
    regProc : process( iClk, inRst )
    begin
-      if inRst = '0' then
+      if inRst = cnActivated then
          reg <= cRegSetClear;
       elsif (rising_edge(iClk)) then
          reg <= nxR;
@@ -369,11 +368,11 @@ begin
 
    syncProc : process( iClk, inRst )
    begin
-      if inRst = '0' then
-         hdcRdy <= '0';
+      if inRst = cnActivated then
+         hdcRdy     <= '0';
          hdcRdySync <= '0';
       elsif (rising_edge(iClk)) then
-         hdcRdy <= iHdcRdy;
+         hdcRdy     <= iHdcRdy;
          hdcRdySync <= hdcRdy;
       end if;
    end process ; -- regProc
