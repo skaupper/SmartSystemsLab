@@ -145,6 +145,14 @@
          type = "String";
       }
    }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element clk_0
    {
       datum _sortIndex
@@ -296,6 +304,11 @@
    type="conduit"
    dir="end" />
  <interface
+   name="hmi_subsystemmpu9250_mpuint"
+   internal="hmi.subsystemmpu9250_mpuint"
+   type="interrupt"
+   dir="start" />
+ <interface
    name="hmi_subsystemmpu9250_spi"
    internal="hmi.subsystemmpu9250_spi"
    type="conduit"
@@ -373,6 +386,7 @@
   <parameter name="AUTO_SUBSYSTEMMPU9250_CLK_CLOCK_DOMAIN" value="1" />
   <parameter name="AUTO_SUBSYSTEMMPU9250_CLK_CLOCK_RATE" value="50000000" />
   <parameter name="AUTO_SUBSYSTEMMPU9250_CLK_RESET_DOMAIN" value="1" />
+  <parameter name="AUTO_SUBSYSTEMMPU9250_MPUINT_INTERRUPTS_USED" value="0" />
   <parameter name="AUTO_SWITCHES_CLK_CLOCK_DOMAIN" value="1" />
   <parameter name="AUTO_SWITCHES_CLK_CLOCK_RATE" value="50000000" />
   <parameter name="AUTO_SWITCHES_CLK_RESET_DOMAIN" value="1" />

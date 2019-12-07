@@ -162,6 +162,11 @@
    type="clock"
    dir="end" />
  <interface
+   name="subsystemmpu9250_mpuint"
+   internal="subsystemMpu9250.mpuint"
+   type="interrupt"
+   dir="start" />
+ <interface
    name="subsystemmpu9250_reset"
    internal="subsystemMpu9250.reset"
    type="reset"
@@ -244,6 +249,7 @@
   <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
   <parameter name="AUTO_GENERATION_ID" value="0" />
+  <parameter name="AUTO_MPUINT_INTERRUPTS_USED" value="0" />
   <parameter name="AUTO_UNIQUE_ID">subsystemHMI_subsystemMpu9250</parameter>
  </module>
  <module name="switches" kind="altera_avalon_pio" version="18.1" enabled="1">

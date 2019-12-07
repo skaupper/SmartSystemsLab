@@ -203,7 +203,8 @@ ARCHITECTURE MAIN OF top IS
             hmi_subsystemmpu9250_spi_MISO       : in    std_logic                     := 'X';             -- MISO
             hmi_subsystemmpu9250_spi_MOSI       : out   std_logic;                                        -- MOSI
             hmi_subsystemmpu9250_spi_SCLK       : out   std_logic;                                        -- SCLK
-            hmi_subsystemmpu9250_spi_SS_n       : out   std_logic                                         -- SS_n
+            hmi_subsystemmpu9250_spi_SS_n       : out   std_logic;                                        -- SS_n
+            hmi_subsystemmpu9250_mpuint_irq_n   : in    std_logic                     := 'X'              -- irq_n
         );
     end component HPSPlatform;
 
@@ -344,7 +345,8 @@ u0 : component HPSPlatform
             hmi_subsystemmpu9250_spi_MISO       => MPU_AD0_SDO,       --     hmi_subsystemmpu9250_spi_0_external.MISO
             hmi_subsystemmpu9250_spi_MOSI       => MPU_SDA_SDI,       --                                        .MOSI
             hmi_subsystemmpu9250_spi_SCLK       => MPU_SCL_SCLK,       --                                        .SCLK
-            hmi_subsystemmpu9250_spi_SS_n       => MPU_CS_n        --                                        .SS_n
+            hmi_subsystemmpu9250_spi_SS_n       => MPU_CS_n,       --                                        .SS_n
+            hmi_subsystemmpu9250_mpuint_irq_n   => MPU_INT             --           hmi_subsystemmpu9250_mpuint.irq_n
         );
 
     key_sync : process( CLOCK_50, HPS_H2F_RST, SW(0) )
@@ -380,12 +382,18 @@ u0 : component HPSPlatform
     LEDR(0) <= HPS_H2F_RST AND key_reset_sync(0);
     LEDR(LEDR'high downto 1) <= (others => '0');
 
-    GPIO_0(0) <= RH_TEMP_DRDY_n;
-    GPIO_0(1) <= RH_TEMP_I2C_SCL;
-    GPIO_0(2) <= RH_TEMP_I2C_SDA;
+    GPIO_0( 0) <= RH_TEMP_DRDY_n;
+    GPIO_0( 1) <= RH_TEMP_I2C_SCL;
+    GPIO_0( 2) <= RH_TEMP_I2C_SDA;
 
-    GPIO_0(4) <= LSENSOR_INT;
-    GPIO_0(5) <= LSENSOR_SCL;
-    GPIO_0(6) <= LSENSOR_SDA;
+    GPIO_0( 4) <= LSENSOR_INT;
+    GPIO_0( 5) <= LSENSOR_SCL;
+    GPIO_0( 6) <= LSENSOR_SDA;
+
+    GPIO_0(10) <= MPU_SCL_SCLK;
+    GPIO_0(11) <= MPU_CS_n;
+    GPIO_0(12) <= MPU_INT;
+    GPIO_0(14) <= MPU_AD0_SDO;
+    GPIO_0(15) <= MPU_SDA_SDI;
 
 END ARCHITECTURE;
