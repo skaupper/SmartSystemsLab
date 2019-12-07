@@ -335,11 +335,11 @@ u0 : component HPSPlatform
             hmi_subsystemhdc1000_i2c_0_i2c_serial_sda_oe => hdc1000_i2c_serial_sda_oe,      --                             .sda_oe
             hmi_subsystemhdc1000_i2c_0_i2c_serial_scl_oe => hdc1000_i2c_serial_scl_oe,      --                             .scl_oe
 
-            hmi_subsystemapds9301_apdsinterrupt_irq_n      => LSENSOR_INT,      --     hmi_subsystemapds9301_apdsinterrupt.irq_n
-            hmi_subsystemapds9301_i2c_scl_in  => apds9301_i2c_serial_sda_in,  --  hmi_subsystemapds9301_i2c_0_i2c_serial.scl_in
-            hmi_subsystemapds9301_i2c_scl_oe  => apds9301_i2c_serial_scl_in,  --                                        .scl_oe
-            hmi_subsystemapds9301_i2c_sda_in  => apds9301_i2c_serial_sda_oe,  --                                        .sda_in
-            hmi_subsystemapds9301_i2c_sda_oe  => apds9301_i2c_serial_scl_oe,
+            hmi_subsystemapds9301_apdsinterrupt_irq_n    => LSENSOR_INT,      --     hmi_subsystemapds9301_apdsinterrupt.irq_n
+            hmi_subsystemapds9301_i2c_sda_in  => apds9301_i2c_serial_sda_in,  --  hmi_subsystemapds9301_i2c_0_i2c_serial.scl_in
+            hmi_subsystemapds9301_i2c_scl_in  => apds9301_i2c_serial_scl_in,  --                                        .scl_oe
+            hmi_subsystemapds9301_i2c_sda_oe  => apds9301_i2c_serial_sda_oe,  --                                        .sda_in
+            hmi_subsystemapds9301_i2c_scl_oe  => apds9301_i2c_serial_scl_oe,
 
             hmi_subsystemmpu9250_spi_MISO       => MPU_AD0_SDO,       --     hmi_subsystemmpu9250_spi_0_external.MISO
             hmi_subsystemmpu9250_spi_MOSI       => MPU_SDA_SDI,       --                                        .MOSI
@@ -383,5 +383,9 @@ u0 : component HPSPlatform
     GPIO_0(0) <= RH_TEMP_DRDY_n;
     GPIO_0(1) <= RH_TEMP_I2C_SCL;
     GPIO_0(2) <= RH_TEMP_I2C_SDA;
+
+    GPIO_0(4) <= LSENSOR_INT;
+    GPIO_0(5) <= LSENSOR_SCL;
+    GPIO_0(6) <= LSENSOR_SDA;
 
 END ARCHITECTURE;

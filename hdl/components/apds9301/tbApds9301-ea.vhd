@@ -60,6 +60,7 @@ begin
 
    test_proc : process
    begin
+      nApdsInterrupt <= '1';
       wait for 700 ns;
       wait until clk = '0';
 
@@ -73,6 +74,22 @@ begin
 
       avs_s0_address  <= "00";
       avs_s0_read     <= '0';
+
+      wait for 100 ns;
+      wait until clk = '0';
+
+      nApdsInterrupt <= '0';
+
+      wait until clk  <= '1';
+      wait until clk  <= '0';
+
+      wait until clk  <= '1';
+      wait until clk  <= '0';
+
+      wait until clk  <= '1';
+      wait until clk  <= '0';
+
+      nApdsInterrupt <= '1';
 
       wait;
    end process; -- test_proc

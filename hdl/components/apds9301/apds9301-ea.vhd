@@ -89,7 +89,11 @@ architecture rtl of apds9301 is
    constant cAddrTsLo : std_logic_vector(1 downto 0) := "01";
    constant cAddrTsUp : std_logic_vector(1 downto 0) := "10";
 
-   constant cMaxCount : unsigned(4 downto 0) := to_unsigned(20, 5);
+   type aI2cCommand is record
+      data  : std_ulogic_vector(7 downto 0);
+      read  : std_ulogic;
+      write : std_ulogic;
+   end record;
 
    type aAvmRegSet is record
       addr  : std_ulogic_vector( 3 downto 0);
@@ -118,8 +122,9 @@ architecture rtl of apds9301 is
       Init, InitI2c1, InitI2c2, InitI2c3, InitI2c4, InitI2c5,
       InitWakeup, InitApds1, InitApds2, InitApds3, InitApds4,
       InitApds5, InitApds6, InitApds7, InitApds8, InitApds9,
-      Idle, WakeUpI2c, WaitInt,
-      WdRdAddr1, WdRdAddr2, RdCmd1, RdCmd2, RdCmd3,
+      WaitInt1, WaitInt2,
+      WdRdAddrL1, WdRdAddrL2, RdCmdL1, RdCmdL2,
+      WdRdAddrH1, WdRdAddrH2, RdCmdH1, RdCmdH2,
       WaitRead1, WaitRead2, LightRead1, LightRead2
    );
 
@@ -127,7 +132,6 @@ architecture rtl of apds9301 is
       lock      : std_ulogic;
       readdata  : std_ulogic_vector(31 downto 0);
       reg       : aValueSet;
-      read      : std_ulogic;
       shadowReg : aValueSet;
       avm       : aAvmRegSet;
       timestamp : aTimestamp;
@@ -139,7 +143,6 @@ architecture rtl of apds9301 is
       lock      => cInactivated,
       readdata  => (others => '0'),
       reg       => cValueSetClear,
-      read      => cInactivated,
       shadowReg => cValueSetClear,
       avm       => cAvmRegSetClear,
       timestamp => (others => '0'),
@@ -164,7 +167,6 @@ begin
    begin
       nxR           <= reg;
       nxR.readdata  <= (others => '0');
-      nxR.read      <= cInactivated;
       nxR.avm.addr  <= (others => '0');
       nxR.avm.wData <= (others => '0');
       nxR.avm.read  <= cInactivated;
@@ -181,156 +183,168 @@ begin
          nxR.reg <= reg.shadowReg;
       end if;
 
-      nxR.shadowReg.timestamp <= reg.timestamp;
-      nxR.shadowReg.light     <= std_ulogic_vector(reg.timestamp(15 downto 0));
+      case reg.state is
+         when Init =>
+            nxR.state <= InitI2c1;
+         when InitI2c1 =>
+            nxR.avm.addr  <= cCtrlAddr;
+            nxR.avm.wData <= (others => '0');
+            nxR.avm.write <= cActivated;
+            nxR.state     <= InitI2c2;
+         when InitI2c2 =>
+            nxR.avm.addr  <= cSclLowAddr;
+            nxR.avm.wData(cSclLowCount'range) <= cSclLowCount;
+            nxR.avm.write <= cActivated;
+            nxR.state     <= InitI2c3;
+         when InitI2c3 =>
+            nxR.avm.addr  <= cSclHighAddr;
+            nxR.avm.wData(cSclHighCount'range) <= cSclHighCount;
+            nxR.avm.write <= cActivated;
+            nxR.state     <= InitI2c4;
+         when InitI2c4 =>
+            nxR.avm.addr  <= cSdaHoldAddr;
+            nxR.avm.wData(cSdaHoldCount'range) <= cSdaHoldCount;
+            nxR.avm.write <= cActivated;
+            nxR.state     <= InitI2c5;
+         when InitI2c5 =>
+            nxR.avm.addr  <= cCtrlAddr;
+            nxR.avm.wData(1 downto 0) <= "11";
+            nxR.avm.write <= cActivated;
+            nxR.state     <= InitWakeup;
+         when InitWakeup =>
+            nxR.avm.addr <= cTrfrCmdAddr;
+            nxR.avm.read <= cActivated;
+            nxR.state    <= InitApds1;
+         when InitApds1 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state     <= InitApds2;
+         when InitApds2 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '0' & '0' & cApdsTimingAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state  <= InitApds3;
+         when InitApds3 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '1' & X"02";
+            nxR.avm.write <= cActivated;
+            nxR.state  <= InitApds4;
+         when InitApds4 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state     <= InitApds5;
+         when InitApds5 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '0' & '0' & cnApdsInterruptAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state  <= InitApds6;
+         when InitApds6 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '1' & X"10";
+            nxR.avm.write <= cActivated;
+            nxR.state  <= InitApds7;
+         when InitApds7 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state     <= InitApds8;
+         when InitApds8 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '0' & '0' & cApdsControlAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state  <= InitApds9;
+         when InitApds9 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '1' & X"03";
+            nxR.avm.write <= cActivated;
+            nxR.state  <= WaitInt1;
+         when WaitInt1 =>
+            if apdsIntSync = '1' then
+               nxR.state <= WaitInt2;
+            end if;
+         when WaitInt2 =>
+            if apdsIntSync = '0' then
+               nxR.state <= WdRdAddrL1;
+               nxR.avm.addr <= cTrfrCmdAddr;
+               nxR.avm.read <= cActivated;
+            end if;
+         when WdRdAddrL1 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state     <= WdRdAddrL2;
+         when WdRdAddrL2 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '1' & '0' & cApdsData0LAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state  <= RdCmdL1;
+         when RdCmdL1 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsReadAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state  <= RdCmdL2;
+         when RdCmdL2 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 8) <= '0' & '1';
+            nxR.avm.write <= cActivated;
+            nxR.state  <= WdRdAddrH1;
+         when WdRdAddrH1 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state     <= WdRdAddrH2;
+         when WdRdAddrH2 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '1' & '0' & cApdsData0HAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state  <= RdCmdH1;
+         when RdCmdH1 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsReadAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state  <= RdCmdH2;
+         when RdCmdH2 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 8) <= '0' & '1';
+            nxR.avm.write <= cActivated;
+            nxR.state  <= WaitRead1;
+         when WaitRead1 =>
+            nxR.avm.addr  <= cRxDataFifoLvlAddr;
+            nxR.avm.read  <= cActivated;
+            nxR.state  <= WaitRead2;
 
---      case reg.state is
---         when Init =>
---            nxR.state <= InitI2c1;
---         when InitI2c1 =>
---            nxR.avm.addr  <= cCtrlAddr;
---            nxR.avm.wData <= (others => '0');
---            nxR.avm.write <= cActivated;
---            nxR.state     <= InitI2c2;
---         when InitI2c2 =>
---            nxR.avm.addr  <= cSclLowAddr;
---            nxR.avm.wData <= X"000000A2";
---            nxR.avm.write <= cActivated;
---            nxR.state     <= InitI2c3;
---         when InitI2c3 =>
---            nxR.avm.addr  <= cSclHighAddr;
---            nxR.avm.wData <= X"00000057";
---            nxR.avm.write <= cActivated;
---            nxR.state     <= InitI2c4;
---         when InitI2c4 =>
---            nxR.avm.addr  <= cSclHoldAddr;
---            nxR.avm.wData <= X"0000007D";
---            nxR.avm.write <= cActivated;
---            nxR.state     <= InitI2c5;
---         when InitI2c5 =>
---            nxR.avm.addr  <= cCtrlAddr;
---            nxR.avm.wData(1 downto 0) <= "11";
---            nxR.avm.write <= cActivated;
---            nxR.state     <= InitWakeup;
---         when InitWakeup =>
---            nxR.avm.addr <= cTrfrCmdAddr;
---            nxR.avm.read <= cActivated;
---            nxR.state    <= InitApds1;
---         when InitApds1 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
---            nxR.avm.write <= cActivated;
---            nxR.state     <= InitApds2;
---         when InitApds2 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '0' & '0' & cApdsTimingAddr;
---            nxR.avm.write <= cActivated;
---            nxR.state  <= InitApds3;
---         when InitApds3 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 0) <= '0' & '1' & X"02";
---            nxR.avm.write <= cActivated;
---            nxR.state  <= InitApds4;
---         when InitApds4 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
---            nxR.avm.write <= cActivated;
---            nxR.state     <= InitApds5;
---         when InitApds5 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '0' & '0' & cnApdsInterruptAddr;
---            nxR.avm.write <= cActivated;
---            nxR.state  <= InitApds6;
---         when InitApds6 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 0) <= '0' & '1' & X"10";
---            nxR.avm.write <= cActivated;
---            nxR.state  <= InitApds7;
---         when InitApds7 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
---            nxR.avm.write <= cActivated;
---            nxR.state     <= InitApds8;
---         when InitApds8 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '0' & '0' & cApdsTimingAddr;
---            nxR.avm.write <= cActivated;
---            nxR.state  <= InitApds9;
---         when InitApds9 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 0) <= '0' & '1' & X"03";
---            nxR.avm.write <= cActivated;
---            nxR.state  <= Idle;
---         when Idle =>
---            if reg.read = cActivated then
---               nxR.state <= WaitInt;
---            end if;
---         when WaitInt =>
---            if apdsIntSync = '0' then
---               nxR.state <= WdRdAddr1;
---               nxR.avm.addr <= cTrfrCmdAddr;
---               nxR.avm.read <= cActivated;
---            end if;
---         when WdRdAddr1 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
---            nxR.avm.write <= cActivated;
---            nxR.state     <= WdRdAddr2;
---         when WdRdAddr2 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '1' & '0' & cApdsData0LAddr;
---            nxR.avm.write <= cActivated;
---            nxR.state  <= RdCmd1;
---         when RdCmd1 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsReadAddr;
---            nxR.avm.write <= cActivated;
---            nxR.state  <= RdCmd2;
---         when RdCmd2 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 8) <= '0' & '0';
---            nxR.avm.write <= cActivated;
---            nxR.state  <= RdCmd3;
---         when RdCmd3 =>
---            nxR.avm.addr  <= cTrfrCmdAddr;
---            nxR.avm.wData(9 downto 8) <= '0' & '1';
---            nxR.avm.write <= cActivated;
---            nxR.state  <= WaitRead1;
---         when WaitRead1 =>
---            nxR.avm.addr  <= cRxDataFifoLvlAddr;
---            nxR.avm.read  <= cActivated;
---            nxR.state  <= WaitRead2;
---
---         when WaitRead2 =>
---            nxR.avm.addr  <= cRxDataFifoLvlAddr;
---            nxR.avm.read  <= cActivated;
---
---            if avm_m0_waitrequest = cInactivated AND unsigned(avm_m0_readdata(3 downto 0)) >= 4 then
---               nxR.avm.addr <= cRxDataAddr;
---               nxR.avm.read <= cActivated;
---               nxR.state <= LightRead1;
---            end if;
---         when LightRead1 =>
---            nxR.valid    <= cInactivated;
---            nxR.avm.addr <= cRxDataAddr;
---            nxR.avm.read <= cActivated;
---            if avm_m0_waitrequest = '0' then
---               nxR.shadowReg.light(15 downto 8) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
---               nxR.state <= LightRead2;
---            end if;
---         when LightRead2 =>
---            if avm_m0_waitrequest = cInactivated then
---               nxR.shadowReg.light(7 downto 0) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
---               nxR.shadowReg.timestamp <= reg.timestamp;
---               nxR.state <= Idle;
---            else
---               nxR.valid    <= cInactivated;
---               nxR.avm.addr <= cRxDataAddr;
---               nxR.avm.read <= cActivated;
---            end if;
---         when others =>
---            nxR.state <= Init;
---      end case;
+         when WaitRead2 =>
+            nxR.avm.addr  <= cRxDataFifoLvlAddr;
+            nxR.avm.read  <= cActivated;
+
+            if avm_m0_waitrequest = cInactivated AND unsigned(avm_m0_readdata(3 downto 0)) >= 2 then
+               nxR.avm.addr <= cRxDataAddr;
+               nxR.avm.read <= cActivated;
+               nxR.state <= LightRead1;
+            end if;
+         when LightRead1 =>
+            nxR.avm.addr <= cRxDataAddr;
+            nxR.avm.read <= cActivated;
+            if avm_m0_waitrequest = '0' then
+               nxR.valid    <= cInactivated;
+               nxR.shadowReg.light(7 downto 0) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
+               nxR.state <= LightRead2;
+            end if;
+         when LightRead2 =>
+            if avm_m0_waitrequest = cInactivated then
+               nxR.shadowReg.timestamp <= reg.timestamp;
+               nxR.shadowReg.light(15 downto 8) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
+               nxR.state <= WaitInt2;
+            else
+               nxR.valid    <= cInactivated;
+               nxR.avm.addr <= cRxDataAddr;
+               nxR.avm.read <= cActivated;
+            end if;
+         when others =>
+            nxR.state <= Init;
+      end case;
 
       -- Bus logic
       if avs_s0_read = cActivated then
@@ -365,8 +379,8 @@ begin
    syncProc : process( iClk, inRst )
    begin
       if inRst = cnActivated then
-         apdsInt     <= '0';
-         apdsIntSync <= '0';
+         apdsInt     <= '1';
+         apdsIntSync <= '1';
       elsif (rising_edge(iClk)) then
          apdsInt     <= inApdsInterrupt;
          apdsIntSync <= apdsInt;
