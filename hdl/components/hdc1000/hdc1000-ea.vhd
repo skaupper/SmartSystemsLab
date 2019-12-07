@@ -19,7 +19,8 @@ use work.Global.all;
 
 entity hdc1000 is
    generic (
-      gClkFrequency    : natural := 100E6);
+      gClkFrequency    : natural := 50E6;
+      gI2cFrequency    : natural := 400E3);
    port ( 
       iClk               : in  std_logic                     := '0';             -- clock.clk 
       inRst              : in  std_logic                     := '0';             -- reset.reset 
@@ -58,7 +59,11 @@ architecture rtl of hdc1000 is
    constant cRxDataFifoLvlAddr  : std_ulogic_vector(3 downto 0) := X"7";
    constant cSclLowAddr         : std_ulogic_vector(3 downto 0) := X"8";
    constant cSclHighAddr        : std_ulogic_vector(3 downto 0) := X"9";
-   constant cSclHoldAddr        : std_ulogic_vector(3 downto 0) := X"A";
+   constant cSdaHoldAddr        : std_ulogic_vector(3 downto 0) := X"A";
+
+   constant cSclLowCount        : std_ulogic_vector(7 downto 0) := std_ulogic_vector(to_unsigned(integer(real(gClkFrequency)/real(gI2cFrequency)*0.65), 8));
+   constant cSclHighCount       : std_ulogic_vector(7 downto 0) := std_ulogic_vector(to_unsigned(integer(real(gClkFrequency)/real(gI2cFrequency)*0.35), 8));
+   constant cSdaHoldCount       : std_ulogic_vector(7 downto 0) := std_ulogic_vector(to_unsigned(integer(real(gClkFrequency)/real(gI2cFrequency)*0.50), 8));
 
    -- I2C Addresses
    constant cHdcReadAddr  : std_ulogic_vector(7 downto 0) := X"81";
@@ -189,17 +194,17 @@ begin
             nxR.hdcState  <= InitI2c2;
          when InitI2c2 =>
             nxR.avm.addr  <= cSclLowAddr;
-            nxR.avm.wData <= X"000000A2";
+            nxR.avm.wData(cSclLowCount'range) <= cSclLowCount;
             nxR.avm.write <= cActivated;
             nxR.hdcState  <= InitI2c3;
          when InitI2c3 =>
             nxR.avm.addr  <= cSclHighAddr;
-            nxR.avm.wData <= X"00000057";
+            nxR.avm.wData(cSclHighCount'range) <= cSclHighCount;
             nxR.avm.write <= cActivated;
             nxR.hdcState  <= InitI2c4;
          when InitI2c4 =>
-            nxR.avm.addr  <= cSclHoldAddr;
-            nxR.avm.wData <= X"0000007D";
+            nxR.avm.addr  <= cSdaHoldAddr;
+            nxR.avm.wData(cSdaHoldCount'range) <= cSdaHoldCount;
             nxR.avm.write <= cActivated;
             nxR.hdcState  <= InitI2c5;
          when InitI2c5 =>

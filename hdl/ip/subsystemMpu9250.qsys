@@ -6,7 +6,7 @@
    version="1.0"
    description=""
    tags=""
-   categories="" />
+   categories="System" />
  <parameter name="bonusData"><![CDATA[bonusData 
 {
    element clock_bridge_0
@@ -80,7 +80,7 @@
   <parameter name="NUM_CLOCK_OUTPUTS" value="1" />
  </module>
  <module name="mpu9250_0" kind="mpu9250" version="1.0" enabled="1">
-  <parameter name="gClkFrequency" value="100000000" />
+  <parameter name="gClkFrequency" value="50000000" />
  </module>
  <module
    name="reset_bridge_0"

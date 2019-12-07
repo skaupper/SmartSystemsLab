@@ -93,7 +93,7 @@
   <parameter name="NUM_CLOCK_OUTPUTS" value="1" />
  </module>
  <module name="hdc1000_0" kind="hdc1000" version="1.0" enabled="1">
-  <parameter name="gClkFrequency" value="100000000" />
+  <parameter name="gClkFrequency" value="50000000" />
  </module>
  <module name="i2c_0" kind="altera_avalon_i2c" version="18.1" enabled="1">
   <parameter name="FIFO_DEPTH" value="16" />

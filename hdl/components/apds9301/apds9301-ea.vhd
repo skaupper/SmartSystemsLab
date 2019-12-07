@@ -19,7 +19,8 @@ use work.Global.all;
 
 entity apds9301 is
    generic (
-      gClkFrequency    : natural := 100E6);
+      gClkFrequency    : natural := 50E6;
+      gI2cFrequency    : natural := 400E3);
    port ( 
       iClk               : in  std_logic                     := '0';             -- clock.clk 
       inRst              : in  std_logic                     := '0';             -- reset.reset 
@@ -58,7 +59,11 @@ architecture rtl of apds9301 is
    constant cRxDataFifoLvlAddr  : std_ulogic_vector(3 downto 0) := X"7";
    constant cSclLowAddr         : std_ulogic_vector(3 downto 0) := X"8";
    constant cSclHighAddr        : std_ulogic_vector(3 downto 0) := X"9";
-   constant cSclHoldAddr        : std_ulogic_vector(3 downto 0) := X"A";
+   constant cSdaHoldAddr        : std_ulogic_vector(3 downto 0) := X"A";
+
+   constant cSclLowCount        : std_ulogic_vector(7 downto 0) := std_ulogic_vector(to_unsigned(integer(real(gClkFrequency)/real(gI2cFrequency)*0.65), 8));
+   constant cSclHighCount       : std_ulogic_vector(7 downto 0) := std_ulogic_vector(to_unsigned(integer(real(gClkFrequency)/real(gI2cFrequency)*0.35), 8));
+   constant cSdaHoldCount       : std_ulogic_vector(7 downto 0) := std_ulogic_vector(to_unsigned(integer(real(gClkFrequency)/real(gI2cFrequency)*0.50), 8));
 
    -- I2C Addresses
    constant cApdsReadAddr  : std_ulogic_vector(7 downto 0) := X"53";

@@ -19,7 +19,7 @@ use work.Global.all;
 
 entity mpu9250 is
    generic (
-      gClkFrequency    : natural := 100E6);
+      gClkFrequency    : natural := 50E6);
    port ( 
       iClk               : in  std_logic                     := '0';             -- clock.clk 
       inRst              : in  std_logic                     := '0';             -- reset.reset 
