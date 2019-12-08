@@ -58,7 +58,7 @@ begin
       iClk             => clk,
       inRst            => nRst,
       iSpiTxReady      => spiTxReady,
-      iMpuInt          => mpuInt);
+      inMpuInt          => mpuInt);
 
    test_proc : process
    begin
@@ -101,6 +101,9 @@ begin
          wait until clk  <= '1';
          wait until clk  <= '0';
       end loop ; -- reg_loop
+
+      avs_s0_address  <= X"0";
+      avs_s0_read     <= '0';
 
       wait;
    end process; -- test_proc

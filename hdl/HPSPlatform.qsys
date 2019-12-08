@@ -390,7 +390,7 @@
   <parameter name="AUTO_SWITCHES_CLK_CLOCK_DOMAIN" value="1" />
   <parameter name="AUTO_SWITCHES_CLK_CLOCK_RATE" value="50000000" />
   <parameter name="AUTO_SWITCHES_CLK_RESET_DOMAIN" value="1" />
-  <parameter name="AUTO_UNIQUE_ID" value="$${FILENAME}_hmi" />
+  <parameter name="AUTO_UNIQUE_ID" value="HPSPlatform_hmi" />
  </module>
  <module name="hps_0" kind="altera_hps" version="18.1" enabled="1">
   <parameter name="ABSTRACT_REAL_COMPARE_TEST" value="false" />

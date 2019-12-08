@@ -110,8 +110,8 @@
  </module>
  <module name="spi_0" kind="altera_avalon_spi" version="18.1" enabled="1">
   <parameter name="avalonSpec" value="2.0" />
-  <parameter name="clockPhase" value="0" />
-  <parameter name="clockPolarity" value="0" />
+  <parameter name="clockPhase" value="1" />
+  <parameter name="clockPolarity" value="1" />
   <parameter name="dataWidth" value="8" />
   <parameter name="disableAvalonFlowControl" value="false" />
   <parameter name="inputClockRate" value="0" />
