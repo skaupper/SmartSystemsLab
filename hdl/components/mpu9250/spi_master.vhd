@@ -50,7 +50,7 @@ ENTITY spi_master IS
 END spi_master;
 
 ARCHITECTURE logic OF spi_master IS
-  TYPE machine IS(ready, execute);                           --state machine data type
+  TYPE machine IS(ready, execute, finish);                   --state machine data type
   SIGNAL state       : machine;                              --current state
   SIGNAL slave       : INTEGER;                              --slave selected for current transaction
   SIGNAL clk_ratio   : INTEGER;                              --current clk_div
@@ -152,11 +152,10 @@ BEGIN
             
             --end of transaction
             IF((clk_toggles = d_width*2 + 1) AND cont = '0') THEN   
-              busy <= '0';             --clock out not busy signal
               ss_n <= (OTHERS => '1'); --set all slave selects high
               mosi <= 'Z';             --set mosi output high impedance
               rx_data <= rx_buffer;    --clock out received data to output port
-              state <= ready;          --return to ready state
+              state <= finish;          --return to ready state
             ELSE                       --not end of transaction
               state <= execute;        --remain in execute state
             END IF;
@@ -165,7 +164,17 @@ BEGIN
             count <= count + 1; --increment counter
             state <= execute;   --remain in execute state
           END IF;
-
+        WHEN finish =>
+          --system clock to sclk ratio is met
+          IF(count = clk_ratio) THEN
+            busy <= '0';        --reset busy signal
+            state <= ready;
+            count <= 1; --increment counter
+          ELSE        --system clock to sclk ratio not met
+            busy <= '1';        --set busy signal
+            count <= count + 1; --increment counter
+            state <= finish;   --remain in finish state
+          END IF;
       END CASE;
     END IF;
   END PROCESS; 
