@@ -12,7 +12,7 @@ std::vector<T> StreamingSensor<T>::getQueue() {
 
 template<class T>
 void StreamingSensor<T>::startPolling() {
-    static const std::chrono::milliseconds delay {static_cast<int>(1000 / frequency)};
+    static const std::chrono::microseconds delay {static_cast<int>(1000 * 1000 / frequency)};
     running = true;
 
     while (running) {
@@ -23,7 +23,7 @@ void StreamingSensor<T>::startPolling() {
             auto value = result.value();
 
             // doProcess may delay the execution
-            std::thread([this, value]() { doProcess(value); }).detach();
+            doProcess(value);
             doStore(value);
         }
 
@@ -32,9 +32,9 @@ void StreamingSensor<T>::startPolling() {
         auto after       = std::chrono::high_resolution_clock::now();
         auto actualDelay = delay;
         if (after > before) {
-            actualDelay -= std::chrono::duration_cast<std::chrono::milliseconds>(after - before);
+            actualDelay -= std::chrono::duration_cast<std::chrono::microseconds>(after - before);
         } else {
-            actualDelay = std::chrono::milliseconds {0};
+            actualDelay = std::chrono::microseconds {0};
         }
         std::this_thread::sleep_for(actualDelay);
     }

@@ -11,7 +11,7 @@ struct APDS9301Data : public Serializable {
         uint32_t timestamp_lo;
         uint32_t timestamp_hi;
         uint16_t value;
-    } POD;
+    } __attribute__((packed)) POD;
 };
 
 class APDS9301 : public StreamingSensor<APDS9301Data> {

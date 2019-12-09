@@ -18,7 +18,7 @@ struct MPU9250Data : public Serializable {
         uint16_t mag_x;
         uint16_t mag_y;
         uint16_t mag_z;
-    } POD;
+    } __attribute__((packed)) POD;
 };
 
 class MPU9250 : public StreamingSensor<MPU9250Data> {

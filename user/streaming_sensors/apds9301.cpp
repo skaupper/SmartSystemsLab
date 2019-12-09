@@ -9,7 +9,7 @@
 
 
 std::string APDS9301::getTopic() const {
-    static const std::string TOPIC_NAME = "sensors/apds931";
+    static const std::string TOPIC_NAME = "sensors/apds9301";
     return TOPIC_NAME;
 }
 
@@ -19,24 +19,28 @@ void APDS9301::doProcess(APDS9301Data const &data) {
     // dimm 7-segment display according to the latest light intensity
     //
 
+    static const int SEGMENT_COUNT = 6;
     static const std::string CHARACTER_DEVICE = "/dev/sevensegment";
 
+    // TODO: do we see something?
     uint8_t brightness = data.POD.value >> 8;
-    uint8_t values[]   = {0x0, 0x1, 0x2, 0xA, 0xB, 0xF};
+    // brightness = 0x7f;
+    uint8_t values[SEGMENT_COUNT]   = {'0', '0', '0', '0', '0', '0'};
 
     auto _lck = lockFPGA();
 
     // open character device
-    auto fd = fopen(CHARACTER_DEVICE.c_str(), "rb");
+    auto fd = fopen(CHARACTER_DEVICE.c_str(), "wb");
     if (!fd) {
         std::cerr << "Failed to open character device '" << CHARACTER_DEVICE << "'" << std::endl;
         return;
     }
 
     // write display values
-    for (int i = 0; i < (int) sizeof(values); ++i) {
+    for (int i = 0; i < SEGMENT_COUNT; ++i) {
         if (fputc(values[i], fd) == EOF) {
             std::cerr << "Failed to write character (index " << i << ")" << std::endl;
+            fclose(fd);
             return;
         }
     }
@@ -44,12 +48,14 @@ void APDS9301::doProcess(APDS9301Data const &data) {
     // write brightness level
     if (fputc(brightness, fd) == EOF) {
         std::cerr << "Failed to write brightness level" << std::endl;
+        fclose(fd);
         return;
     }
 
     // write enable bits
     if (fputc(0xff, fd) == EOF) {
         std::cerr << "Failed to write enable bits" << std::endl;
+        fclose(fd);
         return;
     }
 
@@ -57,7 +63,7 @@ void APDS9301::doProcess(APDS9301Data const &data) {
 }
 
 std::optional<APDS9301Data> APDS9301::doPoll() {
-    static const std::string CHARACTER_DEVICE = "/dev/apds931";
+    static const std::string CHARACTER_DEVICE = "/dev/apds9301";
 
     static const int READ_SIZE = sizeof(APDS9301Data::POD);
     APDS9301Data results {};
@@ -79,7 +85,7 @@ std::optional<APDS9301Data> APDS9301::doPoll() {
         return {};
     }
 
-    // TODO: transform ADC values to useful units
+    // TODO: transform ADC values to useful units if necessary
 
     // close character device
     (void) fclose(fd);

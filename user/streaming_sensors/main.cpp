@@ -24,7 +24,7 @@ void publishSensorData(SENSOR &sensor, mqtt::client &client) {
 
     msg << "[";
     auto sensorValues = sensor.getQueue();
-    std::cout << sensorValues.size() << std::endl;
+    // std::cout << sensorValues.size() << std::endl;
     bool first        = true;
     for (auto &v: sensorValues) {
         if (!first) {
@@ -35,9 +35,9 @@ void publishSensorData(SENSOR &sensor, mqtt::client &client) {
     }
     msg << "]";
     payloadString = msg.str();
-    std::cout << payloadString << std::endl;
+    // std::cout << payloadString << std::endl;
 
-    // client.publish(sensor.getTopic(), payloadString.data(), payloadString.size());
+    client.publish(sensor.getTopic(), payloadString.data(), payloadString.size());
 }
 
 
@@ -53,31 +53,33 @@ int main() {
     }
 
     mqtt::client client(SERVER_URI, CLIENT_ID);
-    // client.connect();
+    client.connect();
 
     HDC1000 hdc1000(50);
     MPU9250 mpu9250(1000);
-    APDS9301 apds931(2.5);
+    APDS9301 apds9301(2.5);
 
     // start a thread for each sensor
     std::vector<std::thread> sensorThreads;
     sensorThreads.emplace_back(std::bind(&HDC1000::startPolling, &hdc1000));
     sensorThreads.emplace_back(std::bind(&MPU9250::startPolling, &mpu9250));
-    sensorThreads.emplace_back(std::bind(&APDS9301::startPolling, &apds931));
+    sensorThreads.emplace_back(std::bind(&APDS9301::startPolling, &apds9301));
 
 
     while (true) {
-        std::cout << "HDC1000: ";
+        // std::cout << "HDC1000: ";
         publishSensorData(hdc1000, client);
+        // std::cout << "MPU9250: ";
         publishSensorData(mpu9250, client);
-        publishSensorData(apds931, client);
-        std::this_thread::sleep_for(2000ms);
+        // std::cout << "APDS9301: ";
+        publishSensorData(apds9301, client);
+        std::this_thread::sleep_for(1000ms);
     }
 
 
     hdc1000.stop();
     mpu9250.stop();
-    apds931.stop();
+    apds9301.stop();
 
     for (auto &&t: sensorThreads) {
         t.join();
