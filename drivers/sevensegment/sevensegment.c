@@ -94,7 +94,7 @@ static int sevenseg_write(struct file *filep, const char *buf,
   for (i = 0; i < HEX_NUM; i += 2)
   {
     /* A HEX display can only represent digits from 0-F */
-    if (sevenseg->buffer[i] > 0xF)
+    if (sevenseg->buffer[i] > 0xF || sevenseg->buffer[i + 1] > 0xF)
       return -EINVAL;
 
     /* combine two raw bytes into a single byte, which equals two sevenseg digits */
