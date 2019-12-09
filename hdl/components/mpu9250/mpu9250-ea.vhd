@@ -28,13 +28,9 @@ entity mpu9250 is
       avs_s0_readdata    : out std_logic_vector(31 downto 0);                    --       .readdata
       avs_s0_write       : in  std_logic                     := '0';             --       .write
       avs_s0_writedata   : in  std_logic_vector(31 downto 0) := (others => '0'); --       .writedata
-      avm_m0_address     : out std_logic_vector( 5 downto 0) := (others => '0'); -- avs_m0.address
-      avm_m0_read        : out std_logic                     := '0';             --       .read
-      avm_m0_readdata    : in  std_logic_vector(31 downto 0);                    --       .readdata
-      avm_m0_write       : out std_logic                     := '0';             --       .write
-      avm_m0_writedata   : out std_logic_vector(31 downto 0) := (others => '0'); --       .writedata
-      avm_m0_waitrequest : in  std_logic;--       .writedata
-      iSpiTxReady        : in  std_logic; --       .writedata
+      sclk, mosi         : out std_logic;
+      miso               : in  std_logic;
+      ss_n               : out std_logic_vector(0 downto 0);
       inMpuInt           : in  std_logic --       .writedata
    );
 end entity mpu9250;
@@ -50,25 +46,17 @@ architecture rtl of mpu9250 is
    subtype aSensorValue is std_ulogic_vector (cSensorValueWidth-1 downto 0);
    type aSensorValues is array (0 to cSensorCount) of aSensorValue;
 
-   -- I2C Avalon Adresses
-   constant cRxDataAddr   : std_ulogic_vector(3 downto 0) := X"0";
-   constant cTxDataAddr   : std_ulogic_vector(3 downto 0) := X"1";
-   constant cStatusAddr   : std_ulogic_vector(3 downto 0) := X"2";
-   constant cControlAddr  : std_ulogic_vector(3 downto 0) := X"3"; -- 0x40
-   constant cSlaveSelAddr : std_ulogic_vector(3 downto 0) := X"5";
-   constant cEopValueAddr : std_ulogic_vector(3 downto 0) := X"6";
-
    -- MPU Reg Addresses
-   constant cMpuSmplrtDiv        : std_ulogic_vector(7 downto 0) := X"19"; -- 0x00
-   constant cMpuConfig           : std_ulogic_vector(7 downto 0) := X"1A"; -- 0x01
-   constant cMpuGyroConfig       : std_ulogic_vector(7 downto 0) := X"1B"; -- 0x00
-   constant cMpuAccelConfig      : std_ulogic_vector(7 downto 0) := X"1C"; -- 0x00
-   constant cMpuAccelConfig2     : std_ulogic_vector(7 downto 0) := X"1D"; -- 0x01
-   constant cMpuI2cMasterCtrl    : std_ulogic_vector(7 downto 0) := X"24"; -- 0b1101 & 0xD
-   constant cMpuI2cSlv0Addr      : std_ulogic_vector(7 downto 0) := X"25";
-   constant cMpuI2cSlv0Reg       : std_ulogic_vector(7 downto 0) := X"26";
-   constant cMpuI2cSlv0Ctrl      : std_ulogic_vector(7 downto 0) := X"27"; -- 0b100
-   constant cMpuI2cSlv0D0      : std_ulogic_vector(7 downto 0) := X"63";
+   constant cMpuSmplrtDiv     : std_ulogic_vector(7 downto 0) := X"19"; -- 0x00
+   constant cMpuConfig        : std_ulogic_vector(7 downto 0) := X"1A"; -- 0x01
+   constant cMpuGyroConfig    : std_ulogic_vector(7 downto 0) := X"1B"; -- 0x00
+   constant cMpuAccelConfig   : std_ulogic_vector(7 downto 0) := X"1C"; -- 0x00
+   constant cMpuAccelConfig2  : std_ulogic_vector(7 downto 0) := X"1D"; -- 0x01
+   constant cMpuI2cMasterCtrl : std_ulogic_vector(7 downto 0) := X"24"; -- 0b1101 & 0xD
+   constant cMpuI2cSlv0Addr   : std_ulogic_vector(7 downto 0) := X"25";
+   constant cMpuI2cSlv0Reg    : std_ulogic_vector(7 downto 0) := X"26";
+   constant cMpuI2cSlv0Ctrl   : std_ulogic_vector(7 downto 0) := X"27"; -- 0b100
+   constant cMpuI2cSlv0D0     : std_ulogic_vector(7 downto 0) := X"63";
    constant cMpuIntPinCfg     : std_ulogic_vector(7 downto 0) := X"37"; -- 0b10110000
    constant cMpuIntEnable     : std_ulogic_vector(7 downto 0) := X"38"; -- 0b00000001
    constant cMpuIntStatus     : std_ulogic_vector(7 downto 0) := X"3A";
@@ -87,34 +75,40 @@ architecture rtl of mpu9250 is
    constant cMpuUserControl   : std_ulogic_vector(7 downto 0) := X"6A"; -- 0b00110000
    constant cMpuPwrMgmt1      : std_ulogic_vector(7 downto 0) := X"6B"; -- 0b00000001
    constant cMpuPwrMgmt2      : std_ulogic_vector(7 downto 0) := X"6C"; -- 0b00000001
+   constant cMpuSlv0Dat0      : std_ulogic_vector(7 downto 0) := X"49";
+   constant cMpuSlv0Dat1      : std_ulogic_vector(7 downto 0) := X"4A";
+   constant cMpuSlv0Dat2      : std_ulogic_vector(7 downto 0) := X"4B";
+   constant cMpuSlv0Dat3      : std_ulogic_vector(7 downto 0) := X"4C";
+   constant cMpuSlv0Dat4      : std_ulogic_vector(7 downto 0) := X"4D";
+   constant cMpuSlv0Dat5      : std_ulogic_vector(7 downto 0) := X"4E";
 
    -- I2C Magnetometer Address
    constant cAk8963ReadAddr   : std_ulogic_vector(7 downto 0) := X"8C";
    constant cAk8963WriteAddr  : std_ulogic_vector(7 downto 0) := X"0C";
 
    -- I2C Magnetometer Reg Addresses
-   constant cAkStatus      : std_ulogic_vector(7 downto 0) := X"02";
-   constant cAkDataXL      : std_ulogic_vector(7 downto 0) := X"03";
-   constant cAkDataXH      : std_ulogic_vector(7 downto 0) := X"04";
-   constant cAkDataYL      : std_ulogic_vector(7 downto 0) := X"05";
-   constant cAkDataYH      : std_ulogic_vector(7 downto 0) := X"06";
-   constant cAkDatazL      : std_ulogic_vector(7 downto 0) := X"07";
-   constant cAkDatazH      : std_ulogic_vector(7 downto 0) := X"08";
-   constant cAkControl1    : std_ulogic_vector(7 downto 0) := X"0A"; -- 0x16
-   constant cAkControl2    : std_ulogic_vector(7 downto 0) := X"0B";
+   constant cAkStatus         : std_ulogic_vector(7 downto 0) := X"02";
+   constant cAkDataXL         : std_ulogic_vector(7 downto 0) := X"03";
+   constant cAkDataXH         : std_ulogic_vector(7 downto 0) := X"04";
+   constant cAkDataYL         : std_ulogic_vector(7 downto 0) := X"05";
+   constant cAkDataYH         : std_ulogic_vector(7 downto 0) := X"06";
+   constant cAkDatazL         : std_ulogic_vector(7 downto 0) := X"07";
+   constant cAkDatazH         : std_ulogic_vector(7 downto 0) := X"08";
+   constant cAkControl1       : std_ulogic_vector(7 downto 0) := X"0A"; -- 0x16
+   constant cAkControl2       : std_ulogic_vector(7 downto 0) := X"0B";
 
    -- Avalon Slave Adresses
-   constant cAddrGyroX   : std_logic_vector(3 downto 0) := X"0";
-   constant cAddrGyroY   : std_logic_vector(3 downto 0) := X"1";
-   constant cAddrGyroZ   : std_logic_vector(3 downto 0) := X"2";
-   constant cAddrAccX    : std_logic_vector(3 downto 0) := X"3";
-   constant cAddrAccY    : std_logic_vector(3 downto 0) := X"4";
-   constant cAddrAccZ    : std_logic_vector(3 downto 0) := X"5";
-   constant cAddrMagnetX : std_logic_vector(3 downto 0) := X"6";
-   constant cAddrMagnetY : std_logic_vector(3 downto 0) := X"7";
-   constant cAddrMagnetZ : std_logic_vector(3 downto 0) := X"8";
-   constant cAddrTsLo    : std_logic_vector(3 downto 0) := X"9";
-   constant cAddrTsUp    : std_logic_vector(3 downto 0) := X"A";
+   constant cAddrGyroX        : std_logic_vector(3 downto 0) := X"0";
+   constant cAddrGyroY        : std_logic_vector(3 downto 0) := X"1";
+   constant cAddrGyroZ        : std_logic_vector(3 downto 0) := X"2";
+   constant cAddrAccX         : std_logic_vector(3 downto 0) := X"3";
+   constant cAddrAccY         : std_logic_vector(3 downto 0) := X"4";
+   constant cAddrAccZ         : std_logic_vector(3 downto 0) := X"5";
+   constant cAddrMagnetX      : std_logic_vector(3 downto 0) := X"6";
+   constant cAddrMagnetY      : std_logic_vector(3 downto 0) := X"7";
+   constant cAddrMagnetZ      : std_logic_vector(3 downto 0) := X"8";
+   constant cAddrTsLo         : std_logic_vector(3 downto 0) := X"9";
+   constant cAddrTsUp         : std_logic_vector(3 downto 0) := X"A";
 
    type aMpuCmd is record
       read : std_ulogic;
@@ -136,7 +130,7 @@ architecture rtl of mpu9250 is
       (read => '0', addr => cMpuGyroConfig,    data => X"18"), -- p.14
       (read => '0', addr => cMpuAccelConfig,   data => X"08"), -- p.14
       (read => '0', addr => cMpuAccelConfig2,  data => X"00"), -- p.15
-      (read => '0', addr => cMpuIntPinCfg,     data => X"30"), -- p.29
+      (read => '0', addr => cMpuIntPinCfg,     data => X"C0"), -- p.29
       (read => '0', addr => cMpuUserControl,   data => X"30"), -- p.40
       (read => '0', addr => cMpuI2cMasterCtrl, data => X"0D"), -- p.40, maybe 0x4D
       (read => '0', addr => cMpuI2cSlv0Addr,   data => cAk8963WriteAddr), -- p.20
@@ -146,36 +140,32 @@ architecture rtl of mpu9250 is
       (read => '0', addr => cMpuI2cSlv0Reg,    data => cAkControl2), -- p.47
       (read => '0', addr => cMpuI2cSlv0D0,     data => X"16"), -- p.51
       (read => '0', addr => cMpuI2cSlv0Ctrl,   data => X"81"), -- p.20
+      (read => '0', addr => cMpuI2cSlv0Addr,   data => cAk8963ReadAddr), -- p.20
+      (read => '0', addr => cMpuI2cSlv0Reg,    data => cAkDataXL), -- p.47
+      (read => '0', addr => cMpuI2cSlv0D0,     data => X"00"), -- p.52
+      (read => '0', addr => cMpuI2cSlv0Ctrl,   data => X"D6"), -- p.20
       (read => '0', addr => cMpuIntEnable,     data => X"01")  -- p.29
    );
 
    constant cMpuRead : aMpuCmdArr := (
-      (read => '1', addr => cMpuAccelXH, data => X"00"),
-      (read => '1', addr => cMpuAccelXL, data => X"00"),
-      (read => '1', addr => cMpuAccelYH, data => X"00"),
-      (read => '1', addr => cMpuAccelYL, data => X"00"),
-      (read => '1', addr => cMpuAccelZH, data => X"00"),
-      (read => '1', addr => cMpuAccelZL, data => X"00"),
-      (read => '1', addr => cMpuGyroXH,  data => X"00"),
-      (read => '1', addr => cMpuGyroXL,  data => X"00"),
-      (read => '1', addr => cMpuGyroYH,  data => X"00"),
-      (read => '1', addr => cMpuGyroYL,  data => X"00"),
-      (read => '1', addr => cMpuGyroZH,  data => X"00"),
-      (read => '1', addr => cMpuGyroZL,  data => X"00")
-   );
-
-   type aAvmRegSet is record
-      addr  : std_ulogic_vector( 3 downto 0);
-      wData : std_ulogic_vector(31 downto 0);
-      write : std_ulogic;
-      read  : std_ulogic;
-   end record;
-
-   constant cAvmRegSetClear : aAvmRegSet := (
-      addr  => (others => '0'),
-      wData => (others => '0'),
-      write => cInactivated,
-      read  => cInactivated
+      (read => '1', addr => cMpuAccelXH,  data => X"00"),
+      (read => '1', addr => cMpuAccelXL,  data => X"00"),
+      (read => '1', addr => cMpuAccelYH,  data => X"00"),
+      (read => '1', addr => cMpuAccelYL,  data => X"00"),
+      (read => '1', addr => cMpuAccelZH,  data => X"00"),
+      (read => '1', addr => cMpuAccelZL,  data => X"00"),
+      (read => '1', addr => cMpuGyroXH,   data => X"00"),
+      (read => '1', addr => cMpuGyroXL,   data => X"00"),
+      (read => '1', addr => cMpuGyroYH,   data => X"00"),
+      (read => '1', addr => cMpuGyroYL,   data => X"00"),
+      (read => '1', addr => cMpuGyroZH,   data => X"00"),
+      (read => '1', addr => cMpuGyroZL,   data => X"00"),
+      (read => '1', addr => cMpuSlv0Dat0, data => X"00"),
+      (read => '1', addr => cMpuSlv0Dat1, data => X"00"),
+      (read => '1', addr => cMpuSlv0Dat2, data => X"00"),
+      (read => '1', addr => cMpuSlv0Dat3, data => X"00"),
+      (read => '1', addr => cMpuSlv0Dat4, data => X"00"),
+      (read => '1', addr => cMpuSlv0Dat5, data => X"00")
    );
 
    type aValueSet is record
@@ -187,33 +177,46 @@ architecture rtl of mpu9250 is
       timestamp => (others => '0'),
       data      => (others => (others => '0')));
 
-   type aMpu9250State is (
-      Init, InitInterrupt1, InitInterrupt2, 
-      InitMpu, FinishInit,
-      WaitData, ReadData);
+   type aMpu9250State is (Init, InitMpu, WaitData, ReadData);
 
-   type aSpiState is (LoadAddr, Address, 
-                      WaitRx, ClearRx,
-                      LoadData, Data,
-                      WaitRead1, WaitRead2, Read);
+   constant cSpiFreq   : integer := 1E6;
+   constant cSpiClkDiv : integer := integer(real(gClkFrequency)/real(2*cSpiFreq));
+
+   type aSpiState is (WriteAddr, WaitBusy1, WaitNBusy1,
+                      WaitBusy2, WaitNBusy2);
+
+   type aSpiIn is record
+      ena    : std_ulogic;
+      cont   : std_ulogic;
+      txdata : std_ulogic_vector(7 downto 0);
+   end record;
+
+   constant cSpiInClear : aSpiIn := (
+      ena    => '0',
+      cont   => '0',
+      txdata => (others => '0'));
+
+   type aSpiOut is record
+      busy   : std_logic;
+      rxdata : std_logic_vector(7 downto 0);
+   end record;
 
    type aSpiReg is record
+      input : aSpiIn;
       idx   : natural;
       state : aSpiState;
-      cnt   : natural;
    end record;
 
    constant cSpiRegClear : aSpiReg := (
+      input => cSpiInClear,
       idx   => 0,
-      state => Address,
-      cnt   => 0);
+      state => WriteAddr);
 
    type aRegSet is record
       lock      : std_ulogic;
       readdata  : std_ulogic_vector(31 downto 0);
       reg       : aValueSet;
       shadowReg : aValueSet;
-      avm       : aAvmRegSet;
       timestamp : aTimestamp;
       valid     : std_ulogic;
       state     : aMpu9250State;
@@ -225,12 +228,12 @@ architecture rtl of mpu9250 is
       readdata  => (others => '0'),
       reg       => cValueSetClear,
       shadowReg => cValueSetClear,
-      avm       => cAvmRegSetClear,
       timestamp => (others => '0'),
       valid     => cInactivated,
       state     => Init,
       spi       => cSpiRegClear);
 
+   signal spiOut : aSpiOut;
    signal nMpuInt, nMpuIntSync : std_ulogic;
    signal msTick   : std_ulogic;
    signal reg, nxR : aRegSet;
@@ -245,16 +248,33 @@ begin
       inResetAsync     => inRst,
       oStrobe          => msTick);
 
-   fsm : process( reg, avs_s0_read, msTick, avs_s0_address, avm_m0_readdata,
-                  avm_m0_waitrequest,iSpiTxReady, nMpuInt )
+   spi : entity work.spi_master
+   generic map (
+      slaves  => 1,
+      d_width => 8)
+   port map (
+      clock   => iClk,
+      reset_n => inRst,
+      enable  => std_logic(reg.spi.input.ena),
+      cpol    => '1',
+      cpha    => '1',
+      cont    => std_logic(reg.spi.input.cont),
+      clk_div => cSpiClkDiv,
+      addr    => 0,
+      tx_data => std_logic_vector(reg.spi.input.txdata),
+      miso    => miso,
+      sclk    => sclk,
+      ss_n    => ss_n,
+      mosi    => mosi,
+      busy    => spiOut.busy,
+      rx_data => spiOut.rxdata);
+
+   fsm : process( reg, avs_s0_read, msTick, avs_s0_address, nMpuInt, spiOut )
    begin
       nxR           <= reg;
       nxR.readdata  <= (others => '0');
-      nxR.avm.addr  <= (others => '0');
-      nxR.avm.wData <= (others => '0');
-      nxR.avm.read  <= cInactivated;
-      nxR.avm.write <= cInactivated;
       nxR.valid     <= cActivated;
+      nxR.spi.input <= cSpiInClear;
 
       -- Timestamp logic
       if msTick = cActivated then
@@ -266,213 +286,92 @@ begin
          nxR.reg <= reg.shadowReg;
       end if;
 
-      nxR.shadowReg.data(6)   <= std_ulogic_vector(reg.timestamp(15 downto 0));
-      nxR.shadowReg.data(7)   <= std_ulogic_vector(reg.timestamp(15 downto 0));
-      nxR.shadowReg.data(8)   <= std_ulogic_vector(reg.timestamp(15 downto 0));
-
       case reg.state is
          when Init =>
-            nxR.state <= InitInterrupt1;
-         when InitInterrupt1 =>
-            nxR.avm.addr  <= cControlAddr;
-            nxR.avm.wData(6) <= cActivated;
-            nxR.avm.write <= cActivated;
-            nxR.state     <= InitInterrupt2;
-         when InitInterrupt2 =>
-            if avm_m0_waitrequest = '0' then
-               nxR.spi.state <= LoadAddr;
-               nxR.spi.idx   <= cMpuInit'low;
-               nxR.spi.cnt   <= 0;
-               nxR.state     <= InitMpu;
-            else
-               nxR.avm.addr  <= cControlAddr;
-               nxR.avm.wData(6) <= cActivated;
-               nxR.avm.write <= cActivated;
-            end if;
+            nxR.state     <= InitMpu;
+            nxR.spi.state <= WriteAddr;
          when InitMpu =>
-               nxR.avm.addr  <= cTxDataAddr;
-
             case reg.spi.state is
-               when LoadAddr =>
-                  if iSpiTxReady = cActivated AND reg.spi.cnt /= 0 then
-                     nxR.avm.wData(7 downto 0) <= createTxAddr(cMpuInit(reg.spi.idx));
-                     nxR.avm.write <= cActivated;
-                     nxR.spi.state <= Address;
-                  else
-                     nxR.spi.cnt <= reg.spi.cnt + 1;
+               when WriteAddr =>
+                  if spiOut.busy = cInactivated then
+                     nxR.spi.input.txdata <= createTxAddr(cMpuInit(reg.spi.idx));
+                     nxR.spi.input.ena    <= cActivated;
+                     nxR.spi.state        <= WaitBusy1;
                   end if;
-               when Address =>
-                  if avm_m0_waitrequest = '0' then
-                     nxR.spi.state <= LoadData;
-                     nxR.spi.cnt   <= 0;
-                  else
-                     nxR.avm.wData(7 downto 0) <= createTxAddr(cMpuInit(reg.spi.idx));
-                     nxR.avm.write <= cActivated;
+               when WaitBusy1 =>
+                  if spiOut.busy = cActivated then
+                     nxR.spi.state <= WaitNBusy1;
                   end if;
-               when LoadData =>
-                  if iSpiTxReady = cActivated AND reg.spi.cnt /= 0 then
-                     nxR.avm.wData(7 downto 0) <= cMpuInit(reg.spi.idx).data;
-                     nxR.avm.write <= cActivated;
-                     nxR.spi.state <= Data;
-                  else
-                     nxR.spi.cnt <= reg.spi.cnt + 1;
+               when WaitNBusy1 =>
+                  nxR.spi.input.cont   <= cActivated;
+                  nxR.spi.input.txdata <= cMpuInit(reg.spi.idx).data;
+                  if spiOut.busy = cInactivated then
+                     nxR.spi.state <= WaitBusy2;
                   end if;
-               when Data =>
-                  if avm_m0_waitrequest = '0' then
-                     nxR.spi.state   <= LoadAddr;
-                     nxR.spi.cnt     <= 0;
+               when WaitBusy2 =>
+                  if spiOut.busy = cActivated then
                      if reg.spi.idx = cMpuInit'high then
-                        nxR.state    <= FinishInit;
-                        nxR.avm.addr <= cRxDataAddr;
-                        nxR.avm.read <= cActivated;
-                        nxR.spi.idx  <= 0;
+                        nxR.state     <= WaitData;
                      else
-                        nxR.spi.idx <= reg.spi.idx + 1;
+                        nxR.spi.idx   <= reg.spi.idx + 1;
+                        nxR.spi.state <= WriteAddr;
                      end if;
-                  else
-                     nxR.avm.wData(7 downto 0) <= cMpuInit(reg.spi.idx).data;
-                     nxR.avm.write <= cActivated;
                   end if;
                when others =>
                   nxR.state <= Init;   --ERROR
             end case;
 
-         when FinishInit =>
-            case reg.spi.idx is
-               when 0 =>
-                  nxR.avm.addr <= cRxDataAddr;
-                  nxR.avm.read <= cActivated;
-                  nxR.spi.idx  <= 1;
-               when 1 =>
-                  nxR.avm.read <= cActivated;
-                  if avm_m0_waitrequest = '0' then
-                     nxR.spi.idx  <= 2;
-                     nxR.avm.addr <= cStatusAddr;
-                  else
-                     nxR.avm.addr <= cRxDataAddr;
-                  end if;
-               when 2 =>
-                  nxR.avm.read <= cActivated;
-                  if avm_m0_waitrequest = '0' AND avm_m0_readdata(7) = cActivated then
-                     nxR.spi.idx  <= 3;
-                     nxR.avm.addr <= cRxDataAddr;
-                  else
-                     nxR.avm.addr <= cStatusAddr;
-                  end if;
-               when 3 =>
-                  if avm_m0_waitrequest = '0' then
-                     nxR.state    <= WaitData;
-                  else
-                     nxR.avm.read <= cActivated;
-                     nxR.avm.addr <= cRxDataAddr;
-                  end if;
-               when others =>
-                  nxR.state <= Init;   --ERROR
-            end case ;
-
          when WaitData =>
-            if nMpuInt = '0' then
+            if msTick = '1' then
+            --if nMpuInt = '1' then
                nxR.valid     <= cInactivated;
                nxR.state     <= ReadData;
-               nxR.spi.state <= LoadAddr;
+               nxR.spi.state <= WriteAddr;
                nxR.spi.idx   <= 0;
-               nxR.spi.cnt   <= 0;
                nxR.shadowreg.timestamp <= reg.timestamp;
             end if;
          when ReadData =>
-               nxR.valid     <= cInactivated;
+            nxR.valid <= cInactivated;
 
-               case reg.spi.state is
-                  when LoadAddr =>
-                     if iSpiTxReady = cActivated AND reg.spi.cnt /= 0 then
-                        nxR.avm.addr  <= cTxDataAddr;
-                        nxR.avm.wData(7 downto 0) <= createTxAddr(cMpuRead(reg.spi.idx));
-                        nxR.avm.write <= cActivated;
-                        nxR.spi.state <= Address;
+            case reg.spi.state is
+               when WriteAddr =>
+                  if spiOut.busy = cInactivated then
+                     nxR.spi.input.txdata <= createTxAddr(cMpuRead(reg.spi.idx));
+                     nxR.spi.input.ena    <= cActivated;
+                     nxR.spi.state        <= WaitBusy1;
+                  end if;
+               when WaitBusy1 =>
+                  if spiOut.busy = cActivated then
+                     nxR.spi.state <= WaitNBusy1;
+                  end if;
+               when WaitNBusy1 =>
+                  nxR.spi.input.cont   <= cActivated;
+                  nxR.spi.input.txdata <= X"00";
+                  if spiOut.busy = cInactivated then
+                     nxR.spi.state     <= WaitBusy2;
+                  end if;
+               when WaitBusy2 =>
+                  if spiOut.busy = cActivated then
+                     nxR.spi.state     <= WaitNBusy2;
+                  end if;
+               when WaitNBusy2 =>
+                  if spiOut.busy = cInactivated then
+                     if (reg.spi.idx mod 2) = 0 then
+                        nxR.shadowreg.data(reg.spi.idx/2)(15 downto 8) <= std_ulogic_vector(spiOut.rxdata);
                      else
-                        nxR.spi.cnt <= reg.spi.cnt + 1;
-                     end if;
-                  when Address =>
-                     if avm_m0_waitrequest = '0' then
-                        nxR.spi.state <= WaitRx;
-                        nxR.spi.cnt   <= 0;
-                        nxR.avm.read  <= cActivated;
-                        nxR.avm.addr  <= cStatusAddr;
-                     else
-                        nxR.avm.addr  <= cTxDataAddr;
-                        nxR.avm.wData(7 downto 0) <= createTxAddr(cMpuRead(reg.spi.idx));
-                        nxR.avm.write <= cActivated;
-                     end if;
-                  when WaitRx =>
-                     nxR.avm.read  <= cActivated;
-
-                     if avm_m0_waitrequest = '0' then
-                        nxR.spi.state <= ClearRx;
-                        nxR.avm.addr  <= cRxDataAddr;
-                     else
-                        nxR.avm.addr  <= cStatusAddr;
-                     end if;
-                  when ClearRx =>
-                     if avm_m0_waitrequest = '0' then
-                        nxR.spi.state <= LoadData;
-                     else
-                        nxR.avm.addr  <= cRxDataAddr;
-                        nxR.avm.read  <= cActivated;
-                     end if;
-                  when LoadData =>
-                     if iSpiTxReady = cActivated AND reg.spi.cnt /= 0 then
-                        nxR.avm.wData(7 downto 0) <= X"00";
-                        nxR.avm.write <= cActivated;
-                        nxR.spi.state <= Data;
-                     else
-                        nxR.spi.cnt <= reg.spi.cnt + 1;
-                     end if;
-                  when Data =>
-                     if avm_m0_waitrequest = '0' then
-                        nxR.spi.state <= WaitRead1;
-                        nxR.spi.cnt   <= 0;
-                     else
-                        nxR.avm.wData(7 downto 0) <= X"00";
-                        nxR.avm.write <= cActivated;
-                     end if;
-                  when WaitRead1 =>
-                     nxR.avm.read <= cActivated;
-                     nxR.avm.addr <= cStatusAddr;
-                     nxR.spi.state <= WaitRead2;
-
-                  when WaitRead2 =>
-                     nxR.avm.read <= cActivated;
-
-                     if avm_m0_waitrequest = cInactivated AND avm_m0_readdata(7) = cActivated then
-                        nxR.avm.addr  <= cRxDataAddr;
-                        nxR.spi.state <= Read;
-                     else
-                        nxR.avm.addr <= cStatusAddr;
+                        nxR.shadowreg.data(reg.spi.idx/2)( 7 downto 0) <= std_ulogic_vector(spiOut.rxdata);
                      end if;
 
-                  when Read =>
-
-                     if avm_m0_waitrequest = cInactivated AND avm_m0_readdata(7) = cActivated then
-                        if (reg.spi.idx mod 2) = 0 then
-                           nxR.shadowreg.data(reg.spi.idx/2)(15 downto 8) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
-                        else
-                           nxR.shadowreg.data(reg.spi.idx/2)( 7 downto 0) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
-                        end if;
-
-                        if reg.spi.idx = cMpuRead'high then
-                           nxR.state <= WaitData;
-                        else
-                           nxR.spi.state <= LoadAddr;
-                           nxR.spi.idx <= reg.spi.idx + 1;
-                        end if;
+                     if reg.spi.idx = cMpuRead'high then
+                        nxR.state     <= WaitData;
                      else
-                        nxR.spi.state <= Read;
-                        nxR.avm.addr <= cRxDataAddr;
+                        nxR.spi.idx   <= reg.spi.idx + 1;
+                        nxR.spi.state <= WriteAddr;
                      end if;
-                     
-                  when others =>
-                     nxR.state <= Init;   --ERROR
-               end case ;
+                  end if;
+               when others =>
+                  nxR.state <= Init;   --ERROR
+            end case;
          when others =>
             nxR.state <= Init;
       end case;
@@ -550,10 +449,6 @@ begin
       end if;
    end process ; -- regProc
 
-   avs_s0_readdata  <= std_logic_vector(reg.readdata);
-   avm_m0_address   <= std_logic_vector(reg.avm.addr) & "00";
-   avm_m0_read      <= std_logic(reg.avm.read);
-   avm_m0_write     <= std_logic(reg.avm.write);
-   avm_m0_writedata <= std_logic_vector(reg.avm.wData);
+   avs_s0_readdata <= std_logic_vector(reg.readdata);
 
 end architecture rtl; -- of new_component

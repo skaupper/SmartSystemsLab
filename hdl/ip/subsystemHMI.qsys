@@ -221,7 +221,7 @@
   <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
   <parameter name="AUTO_GENERATION_ID" value="0" />
-  <parameter name="AUTO_UNIQUE_ID">subsystemHMI_subsystemApds9301</parameter>
+  <parameter name="AUTO_UNIQUE_ID">$${FILENAME}_subsystemApds9301</parameter>
  </module>
  <module
    name="subsystemHdc1000"
@@ -235,7 +235,7 @@
   <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
   <parameter name="AUTO_GENERATION_ID" value="0" />
-  <parameter name="AUTO_UNIQUE_ID">subsystemHMI_subsystemHdc1000</parameter>
+  <parameter name="AUTO_UNIQUE_ID">$${FILENAME}_subsystemHdc1000</parameter>
  </module>
  <module
    name="subsystemMpu9250"
@@ -250,7 +250,7 @@
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
   <parameter name="AUTO_GENERATION_ID" value="0" />
   <parameter name="AUTO_MPUINT_INTERRUPTS_USED" value="0" />
-  <parameter name="AUTO_UNIQUE_ID">subsystemHMI_subsystemMpu9250</parameter>
+  <parameter name="AUTO_UNIQUE_ID">$${FILENAME}_subsystemMpu9250</parameter>
  </module>
  <module name="switches" kind="altera_avalon_pio" version="18.1" enabled="1">
   <parameter name="bitClearingEdgeCapReg" value="false" />
