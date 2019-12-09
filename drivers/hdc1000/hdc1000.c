@@ -55,7 +55,7 @@ static int humid_temp_read(struct file *filep, char *buf, size_t count,
 
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
-    return -EINVAL;
+    return 0;
 
   /* limit number of readable bytes to maximum which is still possible */
   if ((*offp + count) > BUF_SIZE)
