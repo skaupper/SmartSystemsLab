@@ -37,7 +37,7 @@ typedef struct
   uint32_t timestamp_lo;
   uint32_t timestamp_hi;
   uint16_t value;
-} buffer_t;
+} __attribute__((packed)) buffer_t;
 
 struct data
 {
