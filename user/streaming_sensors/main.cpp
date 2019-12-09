@@ -1,18 +1,18 @@
-#include "fpga.h"
-#include "sensors.h"
-#include "hdc1000.h"
-#include "mpu9250.h"
-#include "apds9301.h"
-
 #include <mqtt/client.h>
 
-#include <iostream>
-#include <string>
 #include <chrono>
+#include <functional>
+#include <iostream>
 #include <optional>
 #include <sstream>
+#include <string>
 #include <thread>
-#include <functional>
+
+#include "apds9301.h"
+#include "fpga.h"
+#include "hdc1000.h"
+#include "mpu9250.h"
+#include "sensors.h"
 
 using namespace std::literals::chrono_literals;
 
@@ -24,8 +24,8 @@ void publishSensorData(SENSOR &sensor, mqtt::client &client) {
 
     msg << "[";
     auto sensorValues = sensor.getQueue();
-    bool first = true;
-    for (auto &v : sensorValues) {
+    bool first        = true;
+    for (auto &v: sensorValues) {
         if (!first) {
             msg << ",";
         }
@@ -41,8 +41,8 @@ void publishSensorData(SENSOR &sensor, mqtt::client &client) {
 
 
 int main() {
-    static const std::string SERVER_URI     = "193.170.192.224:1883";
-    static const std::string CLIENT_ID      = "streaming_sensors";
+    static const std::string SERVER_URI = "193.170.192.224:1883";
+    static const std::string CLIENT_ID  = "streaming_sensors";
 
     try {
         initFPGA("streaming_sensors");
@@ -65,7 +65,7 @@ int main() {
     sensorThreads.emplace_back(std::bind(&APDS9301::startPolling, &apds931));
 
 
-    while(true) {
+    while (true) {
         publishSensorData(hdc1000, client);
         publishSensorData(mpu9250, client);
         publishSensorData(apds931, client);

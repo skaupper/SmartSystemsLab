@@ -22,4 +22,4 @@ protected:
     std::optional<HDC1000Data> doPoll() override;
 };
 
-#endif // HDC1000_H
+#endif  // HDC1000_H

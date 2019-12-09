@@ -26,7 +26,6 @@ static void ReconfigDone() {
 
 
 
-
 void initFPGA(std::string name) {
     fpga = std::make_unique<FpgaRegion>(name, ReconfigRequested, ReconfigDone);
     fpga->Acquire();

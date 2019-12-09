@@ -3,12 +3,10 @@
 
 #include "sensors.h"
 
-struct MPU9250Data : public Serializable
-{
+struct MPU9250Data : public Serializable {
     std::string toJsonString() const override;
 
-    struct
-    {
+    struct {
         uint32_t timestamp_lo;
         uint32_t timestamp_hi;
         uint16_t gyro_x;
@@ -23,8 +21,7 @@ struct MPU9250Data : public Serializable
     } POD;
 };
 
-class MPU9250 : public StreamingSensor<MPU9250Data>
-{
+class MPU9250 : public StreamingSensor<MPU9250Data> {
 public:
     using StreamingSensor::StreamingSensor;
 
@@ -34,4 +31,4 @@ protected:
     std::optional<MPU9250Data> doPoll() override;
 };
 
-#endif // MPU9250_H
+#endif  // MPU9250_H
