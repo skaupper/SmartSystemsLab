@@ -124,27 +124,42 @@ architecture rtl of mpu9250 is
    type aMpuCmdArr is array (natural range <>) of aMpuCmd;
 
    constant cMpuInit : aMpuCmdArr := (
+      (read => '0', addr => cMpuUserControl,   data => X"30"), -- p.40
       (read => '0', addr => cMpuPwrMgmt1,      data => X"01"), -- p.40
       (read => '0', addr => cMpuPwrMgmt2,      data => X"00"), -- p.42
       (read => '0', addr => cMpuConfig,        data => X"01"), -- p.12
       (read => '0', addr => cMpuGyroConfig,    data => X"18"), -- p.14
-      (read => '0', addr => cMpuAccelConfig,   data => X"08"), -- p.14
+      (read => '0', addr => cMpuAccelConfig,   data => X"0C"), -- p.14
       (read => '0', addr => cMpuAccelConfig2,  data => X"00"), -- p.15
-      (read => '0', addr => cMpuIntPinCfg,     data => X"C0"), -- p.29
-      (read => '0', addr => cMpuUserControl,   data => X"30"), -- p.40
-      (read => '0', addr => cMpuI2cMasterCtrl, data => X"0D"), -- p.40, maybe 0x4D
+      (read => '0', addr => cMpuIntPinCfg,     data => X"30"), -- p.29
+      (read => '0', addr => cMpuI2cMasterCtrl, data => X"4D"), -- p.18, maybe 0x4D
       (read => '0', addr => cMpuI2cSlv0Addr,   data => cAk8963WriteAddr), -- p.20
-      (read => '0', addr => cMpuI2cSlv0Reg,    data => cAkControl1), -- p.47
+      (read => '0', addr => cMpuI2cSlv0Reg,    data => cAkControl2), -- p.47
       (read => '0', addr => cMpuI2cSlv0D0,     data => X"01"), -- p.52
       (read => '0', addr => cMpuI2cSlv0Ctrl,   data => X"81"), -- p.20
-      (read => '0', addr => cMpuI2cSlv0Reg,    data => cAkControl2), -- p.47
+      (read => '0', addr => cMpuI2cSlv0Reg,    data => cAkControl1), -- p.47
       (read => '0', addr => cMpuI2cSlv0D0,     data => X"16"), -- p.51
       (read => '0', addr => cMpuI2cSlv0Ctrl,   data => X"81"), -- p.20
       (read => '0', addr => cMpuI2cSlv0Addr,   data => cAk8963ReadAddr), -- p.20
       (read => '0', addr => cMpuI2cSlv0Reg,    data => cAkDataXL), -- p.47
       (read => '0', addr => cMpuI2cSlv0D0,     data => X"00"), -- p.52
-      (read => '0', addr => cMpuI2cSlv0Ctrl,   data => X"D6"), -- p.20
+      (read => '0', addr => cMpuI2cSlv0Ctrl,   data => X"D7"), -- p.20
       (read => '0', addr => cMpuIntEnable,     data => X"01")  -- p.29
+   );
+
+   constant cMagInit : aMpuCmdArr := (
+      (read => '0', addr => cMpuI2cSlv0Addr,   data => cAk8963WriteAddr), -- p.20
+      (read => '0', addr => cMpuI2cSlv0Reg,    data => cAkControl2), -- p.47
+      (read => '0', addr => cMpuI2cSlv0D0,     data => X"01"), -- p.52
+      (read => '0', addr => cMpuI2cSlv0Ctrl,   data => X"81"), -- p.20
+      (read => '0', addr => cMpuI2cSlv0Addr,   data => cAk8963WriteAddr), -- p.20
+      (read => '0', addr => cMpuI2cSlv0Reg,    data => cAkControl1), -- p.47
+      (read => '0', addr => cMpuI2cSlv0D0,     data => X"16"), -- p.51
+      (read => '0', addr => cMpuI2cSlv0Ctrl,   data => X"81"), -- p.20
+      (read => '0', addr => cMpuI2cSlv0Addr,   data => cAk8963ReadAddr), -- p.20
+      (read => '0', addr => cMpuI2cSlv0Reg,    data => cAkDataXL), -- p.47
+      (read => '0', addr => cMpuI2cSlv0D0,     data => X"00"), -- p.52
+      (read => '0', addr => cMpuI2cSlv0Ctrl,   data => X"D7") -- p.20
    );
 
    constant cMpuRead : aMpuCmdArr := (
@@ -167,12 +182,12 @@ architecture rtl of mpu9250 is
       timestamp => (others => '0'),
       data      => (others => (others => '0')));
 
-   type aMpu9250State is (Init, InitMpu, WaitData, ReadData);
+   type aMpu9250State is (Init, InitMpu, InitMag, WaitData, ReadData);
 
    constant cSpiFreq   : integer := 1E6;
    constant cSpiClkDiv : integer := integer(real(gClkFrequency)/real(2*cSpiFreq));
 
-   type aSpiState is (WriteAddr, WaitBusy1, WaitNBusy1,
+   type aSpiState is (Start, WriteAddr, WaitBusy1, WaitNBusy1,
                       WaitBusy2, WaitNBusy2);
 
    type aSpiIn is record
@@ -261,7 +276,7 @@ begin
       busy    => spiOut.busy,
       rx_data => spiOut.rxdata);
 
-   fsm : process( reg, avs_s0_read, msTick, avs_s0_address, nMpuInt, spiOut )
+   fsm : process( reg, avs_s0_read, msTick, avs_s0_address, nMpuIntSync, spiOut )
    begin
       nxR           <= reg;
       nxR.readdata  <= (others => '0');
@@ -281,9 +296,11 @@ begin
       case reg.state is
          when Init =>
             nxR.state     <= InitMpu;
-            nxR.spi.state <= WriteAddr;
+            nxR.spi.state <= Start;
          when InitMpu =>
             case reg.spi.state is
+               when Start =>
+                  nxR.spi.state <= WriteAddr;
                when WriteAddr =>
                   if spiOut.busy = cInactivated then
                      nxR.spi.input.txdata <= createTxAddr(cMpuInit(reg.spi.idx));
@@ -302,10 +319,53 @@ begin
                   end if;
                when WaitBusy2 =>
                   if spiOut.busy = cActivated then
+                     nxR.spi.state <= Start;
                      if reg.spi.idx = cMpuInit'high then
-                        nxR.state     <= WaitData;
+                        nxR.state     <= InitMag;
+                        nxR.spi.idx   <= 0;
+                        nxR.spi.cnt   <= 0;
                      else
                         nxR.spi.idx   <= reg.spi.idx + 1;
+                     end if;
+                  end if;
+               when others =>
+                  nxR.state <= Init;   --ERROR
+            end case;
+         when InitMag =>
+            case reg.spi.state is
+               when Start =>
+                  if mstick = cActivated then
+                     nxR.spi.state <= WriteAddr;
+                  end if;
+               when WriteAddr =>
+                  if spiOut.busy = cInactivated then
+                     nxR.spi.input.txdata <= createTxAddr(cMagInit(reg.spi.idx));
+                     nxR.spi.input.ena    <= cActivated;
+                     nxR.spi.state        <= WaitBusy1;
+                  end if;
+               when WaitBusy1 =>
+                  if spiOut.busy = cActivated then
+                     nxR.spi.state <= WaitNBusy1;
+                  end if;
+               when WaitNBusy1 =>
+                  nxR.spi.input.cont   <= cActivated;
+                  nxR.spi.input.txdata <= cMagInit(reg.spi.idx).data;
+                  if spiOut.busy = cInactivated then
+                     nxR.spi.state <= WaitBusy2;
+                  end if;
+               when WaitBusy2 =>
+                  if spiOut.busy = cActivated then
+                     nxR.spi.idx   <= reg.spi.idx + 1;
+
+                     if reg.spi.cnt = 3 then
+                        nxR.spi.state <= Start;
+                        nxR.spi.cnt   <= 0;
+
+                        if reg.spi.idx = cMagInit'high then
+                           nxR.state     <= WaitData;
+                        end if;
+                     else
+                        nxR.spi.cnt   <= reg.spi.cnt + 1;
                         nxR.spi.state <= WriteAddr;
                      end if;
                   end if;
@@ -314,8 +374,7 @@ begin
             end case;
 
          when WaitData =>
-            if msTick = '1' then
-            --if nMpuInt = '1' then
+            if nMpuIntSync = '1' then
                nxR.valid     <= cInactivated;
                nxR.state     <= ReadData;
                nxR.spi.state <= WriteAddr;
