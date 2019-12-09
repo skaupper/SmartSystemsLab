@@ -24,6 +24,7 @@ void publishSensorData(SENSOR &sensor, mqtt::client &client) {
 
     msg << "[";
     auto sensorValues = sensor.getQueue();
+    std::cout << sensorValues.size() << std::endl;
     bool first        = true;
     for (auto &v: sensorValues) {
         if (!first) {
@@ -36,7 +37,7 @@ void publishSensorData(SENSOR &sensor, mqtt::client &client) {
     payloadString = msg.str();
     std::cout << payloadString << std::endl;
 
-    client.publish(sensor.getTopic(), payloadString.data(), payloadString.size());
+    // client.publish(sensor.getTopic(), payloadString.data(), payloadString.size());
 }
 
 
@@ -52,7 +53,7 @@ int main() {
     }
 
     mqtt::client client(SERVER_URI, CLIENT_ID);
-    client.connect();
+    // client.connect();
 
     HDC1000 hdc1000(50);
     MPU9250 mpu9250(1000);
@@ -66,6 +67,7 @@ int main() {
 
 
     while (true) {
+        std::cout << "HDC1000: ";
         publishSensorData(hdc1000, client);
         publishSensorData(mpu9250, client);
         publishSensorData(apds931, client);
