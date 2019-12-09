@@ -52,7 +52,7 @@ typedef struct
   uint16_t mag_x;
   uint16_t mag_y;
   uint16_t mag_z;
-} buffer_t;
+} __attribute__((packed)) buffer_t;
 
 struct data
 {
