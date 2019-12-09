@@ -14,6 +14,7 @@ hdl/scripts/*
 !hdl/scripts/*.sh
 
 drivers/**/*.o
+drivers/**/*.d
 drivers/**/*.cmd
 drivers/**/*.o.cmd
 drivers/**/*.symvers
