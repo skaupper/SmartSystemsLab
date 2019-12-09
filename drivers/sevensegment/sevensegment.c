@@ -65,17 +65,20 @@ static int sevenseg_read(struct file *filep, char *buf, size_t count,
 
 /*
  * @brief This function gets executed on fwrite.
+ * @details Digits to be displayed are expected in hexadecimal
+ * format (i.e. 0x5->5; 0xA->A, 0xC->C, ...).
  */
 static int sevenseg_write(struct file *filep, const char *buf,
                           size_t count, loff_t *offp)
 {
   int i = 0;
+  u8 hex;
   struct altera_sevenseg *sevenseg = container_of(filep->private_data,
                                                   struct altera_sevenseg, misc);
 
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
-    return -EINVAL;
+    return 0;
 
   /* limit number of writeable bytes to maximum which is still possible */
   if ((*offp + count) > BUF_SIZE)
@@ -90,8 +93,12 @@ static int sevenseg_write(struct file *filep, const char *buf,
   /* write data to FPGA */
   for (i = 0; i < HEX_NUM; i += 2)
   {
+    /* A HEX display can only represent digits from 0-F */
+    if (sevenseg->buffer[i] > 0xF || sevenseg->buffer[i + 1] > 0xF)
+      return -EINVAL;
+
     /* combine two raw bytes into a single byte, which equals two sevenseg digits */
-    u8 hex = ((sevenseg->buffer[i] - '0') << 4) | (sevenseg->buffer[i + 1] - '0');
+    hex = ((sevenseg->buffer[i]) << 4) | (sevenseg->buffer[i + 1]);
     iowrite8(hex, sevenseg->regs + MEM_OFFSET_VALUE + (HEX_NUM - i - 1) / 2);
   }
   iowrite8(sevenseg->buffer[6], sevenseg->regs + MEM_OFFSET_BRIGHTNESS);
