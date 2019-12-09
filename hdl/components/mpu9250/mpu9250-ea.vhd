@@ -149,24 +149,14 @@ architecture rtl of mpu9250 is
 
    constant cMpuRead : aMpuCmdArr := (
       (read => '1', addr => cMpuAccelXH,  data => X"00"),
-      (read => '1', addr => cMpuAccelXL,  data => X"00"),
       (read => '1', addr => cMpuAccelYH,  data => X"00"),
-      (read => '1', addr => cMpuAccelYL,  data => X"00"),
       (read => '1', addr => cMpuAccelZH,  data => X"00"),
-      (read => '1', addr => cMpuAccelZL,  data => X"00"),
       (read => '1', addr => cMpuGyroXH,   data => X"00"),
-      (read => '1', addr => cMpuGyroXL,   data => X"00"),
       (read => '1', addr => cMpuGyroYH,   data => X"00"),
-      (read => '1', addr => cMpuGyroYL,   data => X"00"),
       (read => '1', addr => cMpuGyroZH,   data => X"00"),
-      (read => '1', addr => cMpuGyroZL,   data => X"00"),
       (read => '1', addr => cMpuSlv0Dat0, data => X"00"),
-      (read => '1', addr => cMpuSlv0Dat1, data => X"00"),
       (read => '1', addr => cMpuSlv0Dat2, data => X"00"),
-      (read => '1', addr => cMpuSlv0Dat3, data => X"00"),
-      (read => '1', addr => cMpuSlv0Dat4, data => X"00"),
-      (read => '1', addr => cMpuSlv0Dat5, data => X"00")
-   );
+      (read => '1', addr => cMpuSlv0Dat4, data => X"00"));
 
    type aValueSet is record
       timestamp : aTimestamp;
@@ -204,12 +194,14 @@ architecture rtl of mpu9250 is
    type aSpiReg is record
       input : aSpiIn;
       idx   : natural;
+      cnt   : natural;
       state : aSpiState;
    end record;
 
    constant cSpiRegClear : aSpiReg := (
       input => cSpiInClear,
       idx   => 0,
+      cnt   => 0,
       state => WriteAddr);
 
    type aRegSet is record
@@ -339,6 +331,7 @@ begin
                      nxR.spi.input.txdata <= createTxAddr(cMpuRead(reg.spi.idx));
                      nxR.spi.input.ena    <= cActivated;
                      nxR.spi.state        <= WaitBusy1;
+                     nxR.spi.cnt          <= 0;
                   end if;
                when WaitBusy1 =>
                   if spiOut.busy = cActivated then
@@ -352,22 +345,29 @@ begin
                   end if;
                when WaitBusy2 =>
                   if spiOut.busy = cActivated then
-                     nxR.spi.state     <= WaitNBusy2;
+                     nxR.spi.state <= WaitNBusy2;
                   end if;
                when WaitNBusy2 =>
+                  if reg.spi.cnt /= 1 then
+                     nxR.spi.input.cont   <= cActivated;
+                     nxR.spi.input.txdata <= X"00";
+                  end if;   
                   if spiOut.busy = cInactivated then
-                     if (reg.spi.idx mod 2) = 0 then
-                        nxR.shadowreg.data(reg.spi.idx/2)(15 downto 8) <= std_ulogic_vector(spiOut.rxdata);
+                     if reg.spi.cnt /= 1 then
+                        nxR.shadowreg.data(reg.spi.idx)(15 downto 8) <= std_ulogic_vector(spiOut.rxdata);
+                        nxR.spi.cnt   <= reg.spi.cnt + 1;
+                        nxR.spi.state <= WaitBusy2;
                      else
-                        nxR.shadowreg.data(reg.spi.idx/2)( 7 downto 0) <= std_ulogic_vector(spiOut.rxdata);
+                        nxR.shadowreg.data(reg.spi.idx)( 7 downto 0) <= std_ulogic_vector(spiOut.rxdata);
+
+                        if reg.spi.idx = cMpuRead'high then
+                           nxR.state     <= WaitData;
+                        else
+                           nxR.spi.idx   <= reg.spi.idx + 1;
+                           nxR.spi.state <= WriteAddr;
+                        end if;
                      end if;
 
-                     if reg.spi.idx = cMpuRead'high then
-                        nxR.state     <= WaitData;
-                     else
-                        nxR.spi.idx   <= reg.spi.idx + 1;
-                        nxR.spi.state <= WriteAddr;
-                     end if;
                   end if;
                when others =>
                   nxR.state <= Init;   --ERROR
