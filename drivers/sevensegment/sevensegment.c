@@ -72,6 +72,7 @@ static int sevenseg_write(struct file *filep, const char *buf,
                           size_t count, loff_t *offp)
 {
   int i = 0;
+  u8 hex;
   struct altera_sevenseg *sevenseg = container_of(filep->private_data,
                                                   struct altera_sevenseg, misc);
 
@@ -97,7 +98,7 @@ static int sevenseg_write(struct file *filep, const char *buf,
       return -EINVAL;
 
     /* combine two raw bytes into a single byte, which equals two sevenseg digits */
-    u8 hex = ((sevenseg->buffer[i]) << 4) | (sevenseg->buffer[i + 1]);
+    hex = ((sevenseg->buffer[i]) << 4) | (sevenseg->buffer[i + 1]);
     iowrite8(hex, sevenseg->regs + MEM_OFFSET_VALUE + (HEX_NUM - i - 1) / 2);
   }
   iowrite8(sevenseg->buffer[6], sevenseg->regs + MEM_OFFSET_BRIGHTNESS);
