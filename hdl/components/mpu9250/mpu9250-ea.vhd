@@ -163,12 +163,12 @@ architecture rtl of mpu9250 is
    );
 
    constant cMpuRead : aMpuCmdArr := (
-      (read => '1', addr => cMpuAccelXH,  data => X"00"),
-      (read => '1', addr => cMpuAccelYH,  data => X"00"),
-      (read => '1', addr => cMpuAccelZH,  data => X"00"),
       (read => '1', addr => cMpuGyroXH,   data => X"00"),
       (read => '1', addr => cMpuGyroYH,   data => X"00"),
       (read => '1', addr => cMpuGyroZH,   data => X"00"),
+      (read => '1', addr => cMpuAccelXH,  data => X"00"),
+      (read => '1', addr => cMpuAccelYH,  data => X"00"),
+      (read => '1', addr => cMpuAccelZH,  data => X"00"),
       (read => '1', addr => cMpuSlv0Dat0, data => X"00"),
       (read => '1', addr => cMpuSlv0Dat2, data => X"00"),
       (read => '1', addr => cMpuSlv0Dat4, data => X"00"));
