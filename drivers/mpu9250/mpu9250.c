@@ -112,21 +112,6 @@ static int dev_read(struct file *filep, char *buf, size_t count,
   dev->buffer.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
   dev->buffer.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
 
-  /* ------ TESTING ONLY --------------------------------------------------------- */
-  /* PROVIDE DUMMY DATA */
-  dev->buffer.gyro_x = 0x1111;
-  dev->buffer.gyro_y = 0x2222;
-  dev->buffer.gyro_z = 0x3333;
-  dev->buffer.acc_x = 0x4444;
-  dev->buffer.acc_y = 0x5555;
-  dev->buffer.acc_z = 0x6666;
-  dev->buffer.mag_x = 0x7777;
-  dev->buffer.mag_y = 0x8888;
-  dev->buffer.mag_z = 0x9999;
-  dev->buffer.timestamp_lo = 0x47001100;
-  dev->buffer.timestamp_hi = 0x48001200;
-  /* ------ TESTING ONLY --------------------------------------------------------- */
-
   /* copy data from kernel space buffer into user space */
   if (count > 0)
     count = count - copy_to_user(buf, (char *)&dev->buffer + *offp, count);
