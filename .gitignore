@@ -1,3 +1,5 @@
+.vscode/
+
 hdl/*
 hdl/scripts/*
 hdl/scripts/*.bat
