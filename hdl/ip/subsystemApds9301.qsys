@@ -9,19 +9,19 @@
    categories="System" />
  <parameter name="bonusData"><![CDATA[bonusData 
 {
-   element clock_bridge_0
-   {
-      datum _sortIndex
-      {
-         value = "2";
-         type = "int";
-      }
-   }
-   element hdc1000_0
+   element apds9301_0
    {
       datum _sortIndex
       {
          value = "0";
+         type = "int";
+      }
+   }
+   element clock_bridge_0
+   {
+      datum _sortIndex
+      {
+         value = "1";
          type = "int";
       }
    }
@@ -33,20 +33,20 @@
          type = "int";
       }
    }
+   element i2c_0.csr
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+   }
    element reset_bridge_0
    {
       datum _sortIndex
       {
-         value = "1";
+         value = "2";
          type = "int";
-      }
-   }
-   element subsystemHdc1000
-   {
-      datum _originalDeviceFamily
-      {
-         value = "Cyclone V";
-         type = "String";
       }
    }
 }
@@ -70,19 +70,23 @@
  <parameter name="timeStamp" value="0" />
  <parameter name="useTestBenchNamingPattern" value="false" />
  <instanceScript></instanceScript>
- <interface name="clk" internal="clock_bridge_0.in_clk" type="clock" dir="end" />
- <interface name="hdcrdy" internal="hdc1000_0.hdcRdy" type="conduit" dir="end" />
  <interface
-   name="i2c_0_i2c_serial"
-   internal="i2c_0.i2c_serial"
-   type="conduit"
-   dir="end" />
+   name="apdsinterrupt"
+   internal="apds9301_0.ApdsInterrupt"
+   type="interrupt"
+   dir="start" />
+ <interface name="clk" internal="clock_bridge_0.in_clk" type="clock" dir="end" />
+ <interface name="i2c" internal="i2c_0.i2c_serial" type="conduit" dir="end" />
  <interface
    name="reset"
    internal="reset_bridge_0.in_reset"
    type="reset"
    dir="end" />
- <interface name="s0" internal="hdc1000_0.s0" type="avalon" dir="end" />
+ <interface name="s0" internal="apds9301_0.s0" type="avalon" dir="end" />
+ <module name="apds9301_0" kind="apds9301" version="1.0" enabled="1">
+  <parameter name="AUTO_APDSINTERRUPT_INTERRUPTS_USED" value="0" />
+  <parameter name="gClkFrequency" value="50000000" />
+ </module>
  <module
    name="clock_bridge_0"
    kind="altera_clock_bridge"
@@ -91,9 +95,6 @@
   <parameter name="DERIVED_CLOCK_RATE" value="0" />
   <parameter name="EXPLICIT_CLOCK_RATE" value="0" />
   <parameter name="NUM_CLOCK_OUTPUTS" value="1" />
- </module>
- <module name="hdc1000_0" kind="hdc1000" version="1.0" enabled="1">
-  <parameter name="gClkFrequency" value="50000000" />
  </module>
  <module name="i2c_0" kind="altera_avalon_i2c" version="18.1" enabled="1">
   <parameter name="FIFO_DEPTH" value="16" />
@@ -111,7 +112,7 @@
   <parameter name="SYNCHRONOUS_EDGES" value="deassert" />
   <parameter name="USE_RESET_REQUEST" value="0" />
  </module>
- <connection kind="avalon" version="18.1" start="hdc1000_0.m0" end="i2c_0.csr">
+ <connection kind="avalon" version="18.1" start="apds9301_0.m0" end="i2c_0.csr">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
   <parameter name="defaultConnection" value="false" />
@@ -125,7 +126,7 @@
    kind="clock"
    version="18.1"
    start="clock_bridge_0.out_clk"
-   end="hdc1000_0.clk" />
+   end="apds9301_0.clk" />
  <connection
    kind="clock"
    version="18.1"
@@ -135,7 +136,7 @@
    kind="reset"
    version="18.1"
    start="reset_bridge_0.out_reset"
-   end="hdc1000_0.reset" />
+   end="apds9301_0.reset" />
  <connection
    kind="reset"
    version="18.1"

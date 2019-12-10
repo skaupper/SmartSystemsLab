@@ -25,11 +25,27 @@
          type = "int";
       }
    }
-   element subsystemHdc1000_0
+   element subsystemApds9301
+   {
+      datum _sortIndex
+      {
+         value = "4";
+         type = "int";
+      }
+   }
+   element subsystemHdc1000
    {
       datum _sortIndex
       {
          value = "3";
+         type = "int";
+      }
+   }
+   element subsystemMpu9250
+   {
+      datum _sortIndex
+      {
+         value = "5";
          type = "int";
       }
    }
@@ -62,17 +78,6 @@
  <parameter name="timeStamp" value="0" />
  <parameter name="useTestBenchNamingPattern" value="false" />
  <instanceScript></instanceScript>
- <interface name="hdc1000_0_clk" internal="subsystemHdc1000_0.hdc1000_0_clk" />
- <interface name="hdc1000_0_reset" internal="subsystemHdc1000_0.hdc1000_0_reset" />
- <interface
-   name="hdc1000_i2c_0_clk"
-   internal="subsystemHdc1000_0.hdc1000_i2c_0_clk" />
- <interface
-   name="hdc1000_i2c_0_i2c_serial"
-   internal="subsystemHdc1000_0.hdc1000_i2c_0_i2c_serial" />
- <interface
-   name="hdc1000_i2c_0_reset"
-   internal="subsystemHdc1000_0.hdc1000_i2c_0_reset" />
  <interface name="leds_clk" internal="leds.clk" type="clock" dir="end" />
  <interface
    name="leds_external_connection"
@@ -102,32 +107,79 @@
    type="avalon"
    dir="end" />
  <interface
-   name="subsystemhdc1000_0_clk"
-   internal="subsystemHdc1000_0.clk"
+   name="subsystemapds9301_apdsinterrupt"
+   internal="subsystemApds9301.apdsinterrupt"
+   type="interrupt"
+   dir="start" />
+ <interface
+   name="subsystemapds9301_clk"
+   internal="subsystemApds9301.clk"
    type="clock"
    dir="end" />
  <interface
-   name="subsystemhdc1000_0_hdcrdy"
-   internal="subsystemHdc1000_0.hdcrdy"
+   name="subsystemapds9301_i2c"
+   internal="subsystemApds9301.i2c"
    type="conduit"
    dir="end" />
  <interface
-   name="subsystemhdc1000_0_i2c_0_i2c"
-   internal="subsystemHdc1000_0.i2c_0_i2c" />
- <interface
-   name="subsystemhdc1000_0_i2c_0_i2c_serial"
-   internal="subsystemHdc1000_0.i2c_0_i2c_serial"
-   type="conduit"
-   dir="end" />
- <interface
-   name="subsystemhdc1000_0_reset"
-   internal="subsystemHdc1000_0.reset"
+   name="subsystemapds9301_reset"
+   internal="subsystemApds9301.reset"
    type="reset"
    dir="end" />
  <interface
-   name="subsystemhdc1000_0_s0"
-   internal="subsystemHdc1000_0.s0"
+   name="subsystemapds9301_s0"
+   internal="subsystemApds9301.s0"
    type="avalon"
+   dir="end" />
+ <interface
+   name="subsystemhdc1000_clk"
+   internal="subsystemHdc1000.clk"
+   type="clock"
+   dir="end" />
+ <interface
+   name="subsystemhdc1000_hdcrdy"
+   internal="subsystemHdc1000.hdcrdy"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="subsystemhdc1000_i2c_0_i2c_serial"
+   internal="subsystemHdc1000.i2c_0_i2c_serial"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="subsystemhdc1000_reset"
+   internal="subsystemHdc1000.reset"
+   type="reset"
+   dir="end" />
+ <interface
+   name="subsystemhdc1000_s0"
+   internal="subsystemHdc1000.s0"
+   type="avalon"
+   dir="end" />
+ <interface
+   name="subsystemmpu9250_clk"
+   internal="subsystemMpu9250.clk"
+   type="clock"
+   dir="end" />
+ <interface
+   name="subsystemmpu9250_mpuint"
+   internal="subsystemMpu9250.mpuint"
+   type="interrupt"
+   dir="start" />
+ <interface
+   name="subsystemmpu9250_reset"
+   internal="subsystemMpu9250.reset"
+   type="reset"
+   dir="end" />
+ <interface
+   name="subsystemmpu9250_s0"
+   internal="subsystemMpu9250.s0"
+   type="avalon"
+   dir="end" />
+ <interface
+   name="subsystemmpu9250_spi"
+   internal="subsystemMpu9250.spi"
+   type="conduit"
    dir="end" />
  <interface name="switches_clk" internal="switches.clk" type="clock" dir="end" />
  <interface
@@ -157,10 +209,11 @@
  </module>
  <module name="seven_segment" kind="seven_segment" version="1.0" enabled="1" />
  <module
-   name="subsystemHdc1000_0"
-   kind="subsystemHdc1000"
+   name="subsystemApds9301"
+   kind="subsystemApds9301"
    version="1.0"
    enabled="1">
+  <parameter name="AUTO_APDSINTERRUPT_INTERRUPTS_USED" value="0" />
   <parameter name="AUTO_CLK_CLOCK_DOMAIN" value="5" />
   <parameter name="AUTO_CLK_CLOCK_RATE" value="0" />
   <parameter name="AUTO_CLK_RESET_DOMAIN" value="5" />
@@ -168,7 +221,36 @@
   <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
   <parameter name="AUTO_GENERATION_ID" value="0" />
-  <parameter name="AUTO_UNIQUE_ID">subsystemHMI_subsystemHdc1000_0</parameter>
+  <parameter name="AUTO_UNIQUE_ID">$${FILENAME}_subsystemApds9301</parameter>
+ </module>
+ <module
+   name="subsystemHdc1000"
+   kind="subsystemHdc1000"
+   version="1.0"
+   enabled="1">
+  <parameter name="AUTO_CLK_CLOCK_DOMAIN" value="7" />
+  <parameter name="AUTO_CLK_CLOCK_RATE" value="0" />
+  <parameter name="AUTO_CLK_RESET_DOMAIN" value="7" />
+  <parameter name="AUTO_DEVICE" value="5CSEMA5F31C6" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
+  <parameter name="AUTO_GENERATION_ID" value="0" />
+  <parameter name="AUTO_UNIQUE_ID">$${FILENAME}_subsystemHdc1000</parameter>
+ </module>
+ <module
+   name="subsystemMpu9250"
+   kind="subsystemMpu9250"
+   version="1.0"
+   enabled="1">
+  <parameter name="AUTO_CLK_CLOCK_DOMAIN" value="9" />
+  <parameter name="AUTO_CLK_CLOCK_RATE" value="0" />
+  <parameter name="AUTO_CLK_RESET_DOMAIN" value="9" />
+  <parameter name="AUTO_DEVICE" value="5CSEMA5F31C6" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
+  <parameter name="AUTO_GENERATION_ID" value="0" />
+  <parameter name="AUTO_MPUINT_INTERRUPTS_USED" value="0" />
+  <parameter name="AUTO_UNIQUE_ID">$${FILENAME}_subsystemMpu9250</parameter>
  </module>
  <module name="switches" kind="altera_avalon_pio" version="18.1" enabled="1">
   <parameter name="bitClearingEdgeCapReg" value="false" />

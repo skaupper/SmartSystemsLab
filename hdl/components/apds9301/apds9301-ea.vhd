@@ -1,4 +1,4 @@
--- hdc1000-ea.vhd
+-- apds9301-ea.vhd
 
 -- This file was auto-generated as a prototype implementation of a module
 -- created in component editor.  It ties off all outputs to ground and
@@ -17,7 +17,7 @@ use work.Global.all;
 -- 1 -> lower word of timestamp
 -- 2 -> upper word of timestamp
 
-entity hdc1000 is
+entity apds9301 is
    generic (
       gClkFrequency    : natural := 50E6;
       gI2cFrequency    : natural := 400E3);
@@ -35,11 +35,11 @@ entity hdc1000 is
       avm_m0_write       : out std_logic                     := '0';             --       .write
       avm_m0_writedata   : out std_logic_vector(31 downto 0) := (others => '0'); --       .writedata
       avm_m0_waitrequest : in  std_logic; --       .writedata
-      iHdcRdy            : in  std_logic
+      inApdsInterrupt    : in  std_logic --       .writedata
    );
-end entity hdc1000;
+end entity apds9301;
 
-architecture rtl of hdc1000 is
+architecture rtl of apds9301 is
    constant cTimestampWidth : natural := 64;
    subtype aTimestamp is unsigned (cTimestampWidth-1 downto 0);
 
@@ -66,20 +66,34 @@ architecture rtl of hdc1000 is
    constant cSdaHoldCount       : std_ulogic_vector(7 downto 0) := std_ulogic_vector(to_unsigned(integer(real(gClkFrequency)/real(gI2cFrequency)*0.50), 8));
 
    -- I2C Addresses
-   constant cHdcReadAddr  : std_ulogic_vector(7 downto 0) := X"81";
-   constant cHdcWriteAddr : std_ulogic_vector(7 downto 0) := X"80";
+   constant cApdsReadAddr  : std_ulogic_vector(7 downto 0) := X"53";
+   constant cApdsWriteAddr : std_ulogic_vector(7 downto 0) := X"52";
 
    -- HDC Reg Addresses
-   constant cHdcTempAddr  : std_ulogic_vector(7 downto 0) := X"00";
-   constant cHdcHumAddr   : std_ulogic_vector(7 downto 0) := X"01";
-   constant cHdcCfgAddr   : std_ulogic_vector(7 downto 0) := X"02";
+   constant cApdsControlAddr        : std_ulogic_vector(3 downto 0) := X"0"; -- Enable : 0x3
+   constant cApdsTimingAddr         : std_ulogic_vector(3 downto 0) := X"1"; -- Every 400ms : 0x2
+   constant cApdsThresholdLowLAddr  : std_ulogic_vector(3 downto 0) := X"2"; -- dont care
+   constant cApdsThresholdLowHAddr  : std_ulogic_vector(3 downto 0) := X"3"; -- dont care
+   constant cApdsThresholdHighLAddr : std_ulogic_vector(3 downto 0) := X"4"; -- dont care
+   constant cApdsThresholdHighHAddr : std_ulogic_vector(3 downto 0) := X"5"; -- dont care
+   constant cnApdsInterruptAddr      : std_ulogic_vector(3 downto 0) := X"6"; -- Interrupt enable + every cycle: 0x10
+   constant cApdsCRCAddr            : std_ulogic_vector(3 downto 0) := X"8"; -- dont care
+   constant cApdsIDAddr             : std_ulogic_vector(3 downto 0) := X"A"; -- dont care
+   constant cApdsData0LAddr         : std_ulogic_vector(3 downto 0) := X"C"; 
+   constant cApdsData0HAddr         : std_ulogic_vector(3 downto 0) := X"D";
+   constant cApdsData1LAddr         : std_ulogic_vector(3 downto 0) := X"E";
+   constant cApdsData1HAddr         : std_ulogic_vector(3 downto 0) := X"F";
 
    -- Avalon Slave Adresses
    constant cAddrData : std_logic_vector(1 downto 0) := "00";
    constant cAddrTsLo : std_logic_vector(1 downto 0) := "01";
    constant cAddrTsUp : std_logic_vector(1 downto 0) := "10";
 
-   constant cMaxCount : unsigned(4 downto 0) := to_unsigned(20, 5);
+   type aI2cCommand is record
+      data  : std_ulogic_vector(7 downto 0);
+      read  : std_ulogic;
+      write : std_ulogic;
+   end record;
 
    type aAvmRegSet is record
       addr  : std_ulogic_vector( 3 downto 0);
@@ -96,53 +110,48 @@ architecture rtl of hdc1000 is
    );
 
    type aValueSet is record
-      timestamp   : aTimestamp;
-      temperature : aSensorValue;
-      humidity    : aSensorValue;
+      timestamp : aTimestamp;
+      light     : aSensorValue;
    end record;
 
    constant cValueSetClear : aValueSet := (
-      timestamp   => (others => '0'),
-      temperature => (others => '0'),
-      humidity    => (others => '0'));
+      timestamp => (others => '0'),
+      light     => (others => '0'));
 
-   type aHdcState is (
+   type aApdsState is (
       Init, InitI2c1, InitI2c2, InitI2c3, InitI2c4, InitI2c5,
-      InitWakeup, InitHdc1, InitHdc2, InitHdc3, InitHdc4,
-      Idle, WakeUpI2c,
-      StartMeasure1, StartMeasure2, Wait1, Wait2,
-      RdCmd1, RdCmd2, RdCmd3, RdCmd4, RdCmd5, RdCmd6,
-      WaitRead1, WaitRead2, TmpRead1, TmpRead2, HumRead1, HumRead2
+      InitWakeup, InitApds1, InitApds2, InitApds3, InitApds4,
+      InitApds5, InitApds6, InitApds7, InitApds8, InitApds9,
+      WaitInt1, WaitInt2,
+      WdRdAddrL1, WdRdAddrL2, RdCmdL1, RdCmdL2,
+      WdRdAddrH1, WdRdAddrH2, RdCmdH1, RdCmdH2,
+      WaitRead1, WaitRead2, LightRead1, LightRead2
    );
 
    type aRegSet is record
       lock      : std_ulogic;
       readdata  : std_ulogic_vector(31 downto 0);
       reg       : aValueSet;
-      counter   : unsigned(4 downto 0);
-      read      : std_ulogic;
       shadowReg : aValueSet;
       avm       : aAvmRegSet;
       timestamp : aTimestamp;
       valid     : std_ulogic;
-      hdcState  : aHdcState;
+      state     : aApdsState;
    end record;
 
    constant cRegSetClear : aRegSet := (
       lock      => cInactivated,
       readdata  => (others => '0'),
       reg       => cValueSetClear,
-      counter   => (others => '0'),
-      read      => cInactivated,
       shadowReg => cValueSetClear,
       avm       => cAvmRegSetClear,
       timestamp => (others => '0'),
       valid     => cInactivated,
-      hdcState  => Init);
+      state  => Init);
 
    signal msTick   : std_ulogic;
    signal reg, nxR : aRegSet;
-   signal hdcRdy, hdcRdySync : std_ulogic;
+   signal apdsInt, apdsIntSync : std_ulogic;
 begin
 
    strobe : entity work.StrobeGen
@@ -154,11 +163,10 @@ begin
       inResetAsync     => inRst,
       oStrobe          => msTick);
 
-   fsm : process( reg, avs_s0_read, msTick, avs_s0_address, avm_m0_readdata, HdcRdySync, avm_m0_waitrequest )
+   fsm : process( reg, avs_s0_read, msTick, avs_s0_address, avm_m0_readdata, apdsIntSync, avm_m0_waitrequest )
    begin
       nxR           <= reg;
       nxR.readdata  <= (others => '0');
-      nxR.read      <= cInactivated;
       nxR.avm.addr  <= (others => '0');
       nxR.avm.wData <= (others => '0');
       nxR.avm.read  <= cInactivated;
@@ -175,177 +183,174 @@ begin
          nxR.reg <= reg.shadowReg;
       end if;
 
-      if msTick = cActivated then
-         nxR.counter <= reg.counter + 1;
-
-         if reg.counter = (cMaxCount-1) then
-            nxR.read <= cActivated;
-            nxR.counter <= (others => '0');
-         end if;
-      end if;
-
-      case reg.hdcState is
+      case reg.state is
          when Init =>
-            nxR.hdcState <= InitI2c1;
+            nxR.state <= InitI2c1;
          when InitI2c1 =>
             nxR.avm.addr  <= cCtrlAddr;
             nxR.avm.wData <= (others => '0');
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= InitI2c2;
+            nxR.state     <= InitI2c2;
          when InitI2c2 =>
             nxR.avm.addr  <= cSclLowAddr;
             nxR.avm.wData(cSclLowCount'range) <= cSclLowCount;
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= InitI2c3;
+            nxR.state     <= InitI2c3;
          when InitI2c3 =>
             nxR.avm.addr  <= cSclHighAddr;
             nxR.avm.wData(cSclHighCount'range) <= cSclHighCount;
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= InitI2c4;
+            nxR.state     <= InitI2c4;
          when InitI2c4 =>
             nxR.avm.addr  <= cSdaHoldAddr;
             nxR.avm.wData(cSdaHoldCount'range) <= cSdaHoldCount;
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= InitI2c5;
+            nxR.state     <= InitI2c5;
          when InitI2c5 =>
             nxR.avm.addr  <= cCtrlAddr;
             nxR.avm.wData(1 downto 0) <= "11";
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= InitWakeup;
+            nxR.state     <= InitWakeup;
          when InitWakeup =>
             nxR.avm.addr <= cTrfrCmdAddr;
             nxR.avm.read <= cActivated;
-            nxR.hdcState <= InitHdc1;
-         when InitHdc1 =>
+            nxR.state    <= InitApds1;
+         when InitApds1 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 0) <= '1' & '0' & cHdcWriteAddr;
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= InitHdc2;
-         when InitHdc2 =>
+            nxR.state     <= InitApds2;
+         when InitApds2 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 0) <= '0' & '0' & cHdcCfgAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '0' & '0' & cApdsTimingAddr;
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= InitHdc3;
-         when InitHdc3 =>
+            nxR.state  <= InitApds3;
+         when InitApds3 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 0) <= '0' & '0' & "00010000";
+            nxR.avm.wData(9 downto 0) <= '0' & '1' & X"02";
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= InitHdc4;
-         when InitHdc4 =>
+            nxR.state  <= InitApds4;
+         when InitApds4 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 0) <= '0' & '1' & "00000000";
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= Idle;
-         when Idle =>
-            if reg.read = cActivated then
-               nxR.hdcState <= WakeUpI2c;
+            nxR.state     <= InitApds5;
+         when InitApds5 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '0' & '0' & cnApdsInterruptAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state  <= InitApds6;
+         when InitApds6 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '1' & X"10";
+            nxR.avm.write <= cActivated;
+            nxR.state  <= InitApds7;
+         when InitApds7 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state     <= InitApds8;
+         when InitApds8 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '0' & '0' & cApdsControlAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state  <= InitApds9;
+         when InitApds9 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '1' & X"03";
+            nxR.avm.write <= cActivated;
+            nxR.state  <= WaitInt1;
+         when WaitInt1 =>
+            if apdsIntSync = '1' then
+               nxR.state <= WaitInt2;
             end if;
-         when WakeUpI2c =>
-            nxR.avm.addr <= cCtrlAddr;
-            nxR.avm.read <= cActivated;
-            nxR.hdcState <= StartMeasure1;
-         when StartMeasure1 =>
-            nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 0) <= '1' & '0' & cHdcWriteAddr;
-            nxR.avm.write <= cActivated;
-            nxR.hdcState  <= StartMeasure2;
-         when StartMeasure2 =>
-            nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 0) <= '0' & '1' & cHdcTempAddr;
-            nxR.avm.write <= cActivated;
-            nxR.hdcState  <= Wait1;
-         when Wait1 =>
-            if HdcRdySync /= '0' then
-               nxR.hdcState <= Wait2;
-            end if;
-         when Wait2 =>
-            if HdcRdySync = '0' then
-               nxR.hdcState <= RdCmd1;
+         when WaitInt2 =>
+            if apdsIntSync = '0' then
+               nxR.state <= WdRdAddrL1;
                nxR.avm.addr <= cTrfrCmdAddr;
                nxR.avm.read <= cActivated;
             end if;
-         when RdCmd1 =>
+         when WdRdAddrL1 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 0) <= '1' & '0' & cHdcReadAddr;
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= RdCmd2;
-         when RdCmd2 =>
+            nxR.state     <= WdRdAddrL2;
+         when WdRdAddrL2 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 8) <= '0' & '0';
+            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '1' & '0' & cApdsData0LAddr;
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= RdCmd3;
-         when RdCmd3 =>
+            nxR.state  <= RdCmdL1;
+         when RdCmdL1 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 8) <= '0' & '0';
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsReadAddr;
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= RdCmd4;
-         when RdCmd4 =>
-            nxR.avm.addr  <= cTrfrCmdAddr;
-            nxR.avm.wData(9 downto 8) <= '0' & '0';
-            nxR.avm.write <= cActivated;
-            nxR.hdcState  <= RdCmd5;
-         when RdCmd5 =>
+            nxR.state  <= RdCmdL2;
+         when RdCmdL2 =>
             nxR.avm.addr  <= cTrfrCmdAddr;
             nxR.avm.wData(9 downto 8) <= '0' & '1';
             nxR.avm.write <= cActivated;
-            nxR.hdcState  <= WaitRead1;
+            nxR.state  <= WdRdAddrH1;
+         when WdRdAddrH1 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsWriteAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state     <= WdRdAddrH2;
+         when WdRdAddrH2 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '0' & '0' & '1' & '1' & '1' & '0' & cApdsData0HAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state  <= RdCmdH1;
+         when RdCmdH1 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 0) <= '1' & '0' & cApdsReadAddr;
+            nxR.avm.write <= cActivated;
+            nxR.state  <= RdCmdH2;
+         when RdCmdH2 =>
+            nxR.avm.addr  <= cTrfrCmdAddr;
+            nxR.avm.wData(9 downto 8) <= '0' & '1';
+            nxR.avm.write <= cActivated;
+            nxR.state  <= WaitRead1;
          when WaitRead1 =>
             nxR.avm.addr  <= cRxDataFifoLvlAddr;
             nxR.avm.read  <= cActivated;
-            nxR.hdcState  <= WaitRead2;
+            nxR.state  <= WaitRead2;
 
          when WaitRead2 =>
             nxR.avm.addr  <= cRxDataFifoLvlAddr;
             nxR.avm.read  <= cActivated;
 
-            if avm_m0_waitrequest = cInactivated AND unsigned(avm_m0_readdata(3 downto 0)) >= 4 then
+            if avm_m0_waitrequest = cInactivated AND unsigned(avm_m0_readdata(3 downto 0)) >= 2 then
                nxR.avm.addr <= cRxDataAddr;
                nxR.avm.read <= cActivated;
-               nxR.hdcState <= TmpRead1;
+               nxR.state <= LightRead1;
             end if;
-         when TmpRead1 =>
-            nxR.avm.addr <= cRxDataAddr;
-            nxR.avm.read <= cActivated;
-            if avm_m0_waitrequest = cInactivated then
-               nxR.valid    <= cInactivated;
-               nxR.shadowReg.temperature(15 downto 8) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
-               nxR.hdcState <= TmpRead2;
-            end if;
-         when TmpRead2 =>
-            nxR.valid    <= cInactivated;
-            nxR.avm.addr <= cRxDataAddr;
-            nxR.avm.read <= cActivated;
-            if avm_m0_waitrequest = cInactivated then
-               nxR.shadowReg.temperature(7 downto 0) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
-               nxR.hdcState <= HumRead1;
-            end if;
-         when HumRead1 =>
-            nxR.valid    <= cInactivated;
+         when LightRead1 =>
             nxR.avm.addr <= cRxDataAddr;
             nxR.avm.read <= cActivated;
             if avm_m0_waitrequest = '0' then
-               nxR.shadowReg.humidity(15 downto 8) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
-               nxR.hdcState <= HumRead2;
+               nxR.valid    <= cInactivated;
+               nxR.shadowReg.light(7 downto 0) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
+               nxR.state <= LightRead2;
             end if;
-         when HumRead2 =>
+         when LightRead2 =>
             if avm_m0_waitrequest = cInactivated then
-               nxR.shadowReg.humidity(7 downto 0) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
                nxR.shadowReg.timestamp <= reg.timestamp;
-               nxR.hdcState <= Idle;
+               nxR.shadowReg.light(15 downto 8) <= std_ulogic_vector(avm_m0_readdata(7 downto 0));
+               nxR.state <= WaitInt2;
             else
                nxR.valid    <= cInactivated;
                nxR.avm.addr <= cRxDataAddr;
                nxR.avm.read <= cActivated;
             end if;
          when others =>
-            nxR.hdcState <= Init;
+            nxR.state <= Init;
       end case;
 
       -- Bus logic
       if avs_s0_read = cActivated then
          case( avs_s0_address ) is
             when cAddrData =>
-               nxR.readdata <= reg.reg.humidity & reg.reg.temperature;
+               nxR.readdata(15 downto 0) <= reg.reg.light;
                nxR.lock     <= cActivated;
 
             when cAddrTsLo =>
@@ -374,11 +379,11 @@ begin
    syncProc : process( iClk, inRst )
    begin
       if inRst = cnActivated then
-         hdcRdy     <= '0';
-         hdcRdySync <= '0';
+         apdsInt     <= '1';
+         apdsIntSync <= '1';
       elsif (rising_edge(iClk)) then
-         hdcRdy     <= iHdcRdy;
-         hdcRdySync <= hdcRdy;
+         apdsInt     <= inApdsInterrupt;
+         apdsIntSync <= apdsInt;
       end if;
    end process ; -- regProc
 

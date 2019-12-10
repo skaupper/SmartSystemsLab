@@ -116,7 +116,7 @@ ARCHITECTURE MAIN OF top IS
     component HPSPlatform is
         port (
             clk_clk                              : in    std_logic                     := 'X';             -- clk
-            h2f_reset_reset_n                    : out   std_logic;                                        -- reset_n
+            hps_0_h2f_reset_reset_n                    : out   std_logic;                                        -- reset_n
             hps_0_f2h_cold_reset_req_reset_n     : in    std_logic                     := 'X';             -- reset_n
             hps_0_f2h_debug_reset_req_reset_n    : in    std_logic                     := 'X';             -- reset_n
             hps_0_f2h_stm_hw_events_stm_hwevents : in    std_logic_vector(27 downto 0) := (others => 'X'); -- stm_hwevents
@@ -190,11 +190,21 @@ ARCHITECTURE MAIN OF top IS
             leds_external_connection_export      : out   std_logic_vector(9 downto 0);                     -- export
             seven_segment_conduit_end_export     : out   std_logic_vector(41 downto 0);                    -- export
             switches_external_connection_export  : in    std_logic_vector(9 downto 0)  := (others => 'X'); -- export
-            hmi_subsystemhdc1000_0_hdcrdy_interrupt           : in    std_logic                     := 'X';             -- interrupt
-            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_sda_in      : in    std_logic                     := 'X';             -- sda_in
-            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_scl_in      : in    std_logic                     := 'X';             -- scl_in
-            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_sda_oe      : out   std_logic;                                        -- sda_oe
-            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_scl_oe      : out   std_logic                                         -- scl_oe
+            hmi_subsystemapds9301_apdsinterrupt_irq_n      : in    std_logic                     := 'X';             -- irq_n
+            hmi_subsystemapds9301_i2c_scl_in  : in    std_logic                     := 'X';             -- scl_in
+            hmi_subsystemapds9301_i2c_scl_oe  : out   std_logic;                                        -- scl_oe
+            hmi_subsystemapds9301_i2c_sda_in  : in    std_logic                     := 'X';             -- sda_in
+            hmi_subsystemapds9301_i2c_sda_oe  : out   std_logic;                                        -- sda_oe
+            hmi_subsystemhdc1000_hdcrdy_interrupt        : in    std_logic                     := 'X';             -- interrupt
+            hmi_subsystemhdc1000_i2c_0_i2c_serial_sda_in : in    std_logic                     := 'X';             -- sda_in
+            hmi_subsystemhdc1000_i2c_0_i2c_serial_scl_in : in    std_logic                     := 'X';             -- scl_in
+            hmi_subsystemhdc1000_i2c_0_i2c_serial_sda_oe : out   std_logic;                                        -- sda_oe
+            hmi_subsystemhdc1000_i2c_0_i2c_serial_scl_oe : out   std_logic;                                        -- scl_oe
+            hmi_subsystemmpu9250_spi_MISO       : in    std_logic                     := 'X';             -- MISO
+            hmi_subsystemmpu9250_spi_MOSI       : out   std_logic;                                        -- MOSI
+            hmi_subsystemmpu9250_spi_SCLK       : out   std_logic;                                        -- SCLK
+            hmi_subsystemmpu9250_spi_SS_n       : out   std_logic;                                        -- SS_n
+            hmi_subsystemmpu9250_mpuint_irq_n   : in    std_logic                     := 'X'              -- irq_n
         );
     end component HPSPlatform;
 
@@ -220,10 +230,15 @@ ARCHITECTURE MAIN OF top IS
    signal test : std_logic;
    signal key_reset_sync : std_logic_vector(sync_levels downto 0);
 
-   signal i2c_serial_sda_in : std_logic;
-   signal i2c_serial_scl_in : std_logic;
-   signal i2c_serial_sda_oe : std_logic;
-   signal i2c_serial_scl_oe : std_logic;
+   signal hdc1000_i2c_serial_sda_in : std_logic;
+   signal hdc1000_i2c_serial_scl_in : std_logic;
+   signal hdc1000_i2c_serial_sda_oe : std_logic;
+   signal hdc1000_i2c_serial_scl_oe : std_logic;
+
+   signal apds9301_i2c_serial_sda_in : std_logic;
+   signal apds9301_i2c_serial_scl_in : std_logic;
+   signal apds9301_i2c_serial_sda_oe : std_logic;
+   signal apds9301_i2c_serial_scl_oe : std_logic;
 
 BEGIN
 
@@ -248,7 +263,7 @@ u0 : component HPSPlatform
             memory_mem_odt                  => HPS_DDR3_ODT,                  --                        .mem_odt
             memory_mem_dm                   => HPS_DDR3_DM,                   --                        .mem_dm
             memory_oct_rzqin                => HPS_DDR3_RZQ,                --                        .oct_rzqin
-            h2f_reset_reset_n               => HPS_H2F_RST,             --         hps_0_h2f_reset.reset_n
+            hps_0_h2f_reset_reset_n               => HPS_H2F_RST,             --         hps_0_h2f_reset.reset_n
             hps_0_f2h_cold_reset_req_reset_n     => not(hps_cold_reset),     --     hps_0_f2h_cold_reset_req.reset_n
             hps_0_f2h_debug_reset_req_reset_n    => not(hps_debug_reset),    --    hps_0_f2h_debug_reset_req.reset_n
             hps_0_f2h_stm_hw_events_stm_hwevents => stm_hw_events, --      hps_0_f2h_stm_hw_events.stm_hwevents
@@ -315,11 +330,23 @@ u0 : component HPSPlatform
             seven_segment_conduit_end_export(6+7*4 downto  7*4)    => HEX4,
             seven_segment_conduit_end_export(6+7*5 downto  7*5)    => HEX5,
 
-            hmi_subsystemhdc1000_0_hdcrdy_interrupt           => RH_TEMP_DRDY_n,           --             hdc1000_0_hdcrdy.interrupt
-            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_sda_in      => i2c_serial_sda_in,      --     hdc1000_i2c_0_i2c_serial.sda_in
-            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_scl_in      => i2c_serial_scl_in,      --                             .scl_in
-            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_sda_oe      => i2c_serial_sda_oe,      --                             .sda_oe
-            hmi_subsystemhdc1000_0_i2c_0_i2c_serial_scl_oe      => i2c_serial_scl_oe       --                             .scl_oe
+            hmi_subsystemhdc1000_hdcrdy_interrupt        => RH_TEMP_DRDY_n,           --             hdc1000_0_hdcrdy.interrupt
+            hmi_subsystemhdc1000_i2c_0_i2c_serial_sda_in => hdc1000_i2c_serial_sda_in,      --     hdc1000_i2c_0_i2c_serial.sda_in
+            hmi_subsystemhdc1000_i2c_0_i2c_serial_scl_in => hdc1000_i2c_serial_scl_in,      --                             .scl_in
+            hmi_subsystemhdc1000_i2c_0_i2c_serial_sda_oe => hdc1000_i2c_serial_sda_oe,      --                             .sda_oe
+            hmi_subsystemhdc1000_i2c_0_i2c_serial_scl_oe => hdc1000_i2c_serial_scl_oe,      --                             .scl_oe
+
+            hmi_subsystemapds9301_apdsinterrupt_irq_n    => LSENSOR_INT,      --     hmi_subsystemapds9301_apdsinterrupt.irq_n
+            hmi_subsystemapds9301_i2c_sda_in  => apds9301_i2c_serial_sda_in,  --  hmi_subsystemapds9301_i2c_0_i2c_serial.scl_in
+            hmi_subsystemapds9301_i2c_scl_in  => apds9301_i2c_serial_scl_in,  --                                        .scl_oe
+            hmi_subsystemapds9301_i2c_sda_oe  => apds9301_i2c_serial_sda_oe,  --                                        .sda_in
+            hmi_subsystemapds9301_i2c_scl_oe  => apds9301_i2c_serial_scl_oe,
+
+            hmi_subsystemmpu9250_spi_MISO       => MPU_AD0_SDO,       --     hmi_subsystemmpu9250_spi_0_external.MISO
+            hmi_subsystemmpu9250_spi_MOSI       => MPU_SDA_SDI,       --                                        .MOSI
+            hmi_subsystemmpu9250_spi_SCLK       => MPU_SCL_SCLK,       --                                        .SCLK
+            hmi_subsystemmpu9250_spi_SS_n       => MPU_CS_n,       --                                        .SS_n
+            hmi_subsystemmpu9250_mpuint_irq_n   => MPU_INT             --           hmi_subsystemmpu9250_mpuint.irq_n
         );
 
     key_sync : process( CLOCK_50, HPS_H2F_RST, SW(0) )
@@ -332,21 +359,41 @@ u0 : component HPSPlatform
         end if;
     end process; -- key_sync
 
-    i2c_io : component i2c_io_buf
+    hdc1000_i2c_io : component i2c_io_buf
         port map (
             datain     => (others => '0'),
-            oe(1)      => i2c_serial_scl_oe,
-            oe(0)      => i2c_serial_sda_oe,
-            dataout(1) => i2c_serial_scl_in,
-            dataout(0) => i2c_serial_sda_in,
+            oe(1)      => hdc1000_i2c_serial_scl_oe,
+            oe(0)      => hdc1000_i2c_serial_sda_oe,
+            dataout(1) => hdc1000_i2c_serial_scl_in,
+            dataout(0) => hdc1000_i2c_serial_sda_in,
             dataio(1)  => RH_TEMP_I2C_SCL,
             dataio(0)  => RH_TEMP_I2C_SDA);
+
+    apds9301_i2c_io : component i2c_io_buf
+        port map (
+            datain     => (others => '0'),
+            oe(1)      => apds9301_i2c_serial_scl_oe,
+            oe(0)      => apds9301_i2c_serial_sda_oe,
+            dataout(1) => apds9301_i2c_serial_scl_in,
+            dataout(0) => apds9301_i2c_serial_sda_in,
+            dataio(1)  => LSENSOR_SCL,
+            dataio(0)  => LSENSOR_SDA);
 
     LEDR(0) <= HPS_H2F_RST AND key_reset_sync(0);
     LEDR(LEDR'high downto 1) <= (others => '0');
 
-    GPIO_0(0) <= RH_TEMP_DRDY_n;
-    GPIO_0(1) <= RH_TEMP_I2C_SCL;
-    GPIO_0(2) <= RH_TEMP_I2C_SDA;
+    GPIO_0( 0) <= RH_TEMP_DRDY_n;
+    GPIO_0( 1) <= RH_TEMP_I2C_SCL;
+    GPIO_0( 2) <= RH_TEMP_I2C_SDA;
+
+    GPIO_0( 4) <= LSENSOR_INT;
+    GPIO_0( 5) <= LSENSOR_SCL;
+    GPIO_0( 6) <= LSENSOR_SDA;
+
+    GPIO_0(10) <= MPU_SCL_SCLK;
+    GPIO_0(11) <= MPU_CS_n;
+    GPIO_0(12) <= MPU_INT;
+    GPIO_0(14) <= MPU_AD0_SDO;
+    GPIO_0(15) <= MPU_SDA_SDI;
 
 END ARCHITECTURE;

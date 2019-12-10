@@ -13,11 +13,11 @@
    {
       datum _sortIndex
       {
-         value = "2";
+         value = "1";
          type = "int";
       }
    }
-   element hdc1000_0
+   element mpu9250
    {
       datum _sortIndex
       {
@@ -25,28 +25,12 @@
          type = "int";
       }
    }
-   element i2c_0
-   {
-      datum _sortIndex
-      {
-         value = "3";
-         type = "int";
-      }
-   }
    element reset_bridge_0
    {
       datum _sortIndex
       {
-         value = "1";
+         value = "2";
          type = "int";
-      }
-   }
-   element subsystemHdc1000
-   {
-      datum _originalDeviceFamily
-      {
-         value = "Cyclone V";
-         type = "String";
       }
    }
 }
@@ -71,18 +55,14 @@
  <parameter name="useTestBenchNamingPattern" value="false" />
  <instanceScript></instanceScript>
  <interface name="clk" internal="clock_bridge_0.in_clk" type="clock" dir="end" />
- <interface name="hdcrdy" internal="hdc1000_0.hdcRdy" type="conduit" dir="end" />
- <interface
-   name="i2c_0_i2c_serial"
-   internal="i2c_0.i2c_serial"
-   type="conduit"
-   dir="end" />
+ <interface name="mpuint" internal="mpu9250.mpuInt" type="interrupt" dir="start" />
  <interface
    name="reset"
    internal="reset_bridge_0.in_reset"
    type="reset"
    dir="end" />
- <interface name="s0" internal="hdc1000_0.s0" type="avalon" dir="end" />
+ <interface name="s0" internal="mpu9250.s0" type="avalon" dir="end" />
+ <interface name="spi" internal="mpu9250.spi_serial" type="conduit" dir="end" />
  <module
    name="clock_bridge_0"
    kind="altera_clock_bridge"
@@ -92,13 +72,9 @@
   <parameter name="EXPLICIT_CLOCK_RATE" value="0" />
   <parameter name="NUM_CLOCK_OUTPUTS" value="1" />
  </module>
- <module name="hdc1000_0" kind="hdc1000" version="1.0" enabled="1">
+ <module name="mpu9250" kind="mpu9250" version="1.0" enabled="1">
+  <parameter name="AUTO_MPUINT_INTERRUPTS_USED" value="0" />
   <parameter name="gClkFrequency" value="50000000" />
- </module>
- <module name="i2c_0" kind="altera_avalon_i2c" version="18.1" enabled="1">
-  <parameter name="FIFO_DEPTH" value="16" />
-  <parameter name="USE_AV_ST" value="0" />
-  <parameter name="clockRate" value="0" />
  </module>
  <module
    name="reset_bridge_0"
@@ -111,11 +87,6 @@
   <parameter name="SYNCHRONOUS_EDGES" value="deassert" />
   <parameter name="USE_RESET_REQUEST" value="0" />
  </module>
- <connection kind="avalon" version="18.1" start="hdc1000_0.m0" end="i2c_0.csr">
-  <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0000" />
-  <parameter name="defaultConnection" value="false" />
- </connection>
  <connection
    kind="clock"
    version="18.1"
@@ -125,22 +96,12 @@
    kind="clock"
    version="18.1"
    start="clock_bridge_0.out_clk"
-   end="hdc1000_0.clk" />
- <connection
-   kind="clock"
-   version="18.1"
-   start="clock_bridge_0.out_clk"
-   end="i2c_0.clock" />
+   end="mpu9250.clk" />
  <connection
    kind="reset"
    version="18.1"
    start="reset_bridge_0.out_reset"
-   end="hdc1000_0.reset" />
- <connection
-   kind="reset"
-   version="18.1"
-   start="reset_bridge_0.out_reset"
-   end="i2c_0.reset_sink" />
+   end="mpu9250.reset" />
  <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
  <interconnectRequirement for="$system" name="qsys_mm.enableEccProtection" value="FALSE" />
  <interconnectRequirement for="$system" name="qsys_mm.insertDefaultSlave" value="FALSE" />
