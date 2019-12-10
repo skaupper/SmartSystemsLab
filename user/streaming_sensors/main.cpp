@@ -7,6 +7,8 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <cmath>
+#include <algorithm>
 
 #include "apds9301.h"
 #include "fpga.h"
@@ -19,25 +21,36 @@ using namespace std::literals::chrono_literals;
 
 template<class SENSOR>
 void publishSensorData(SENSOR &sensor, mqtt::client &client) {
+    static const int MAX_PACKETS_PER_BURST = 100;
+
     std::stringstream msg;
     std::string payloadString;
 
-    msg << "[";
     auto sensorValues = sensor.getQueue();
-    // std::cout << sensorValues.size() << std::endl;
-    bool first        = true;
-    for (auto &v: sensorValues) {
-        if (!first) {
-            msg << ",";
-        }
-        first = false;
-        msg << v.toJsonString();
-    }
-    msg << "]";
-    payloadString = msg.str();
-    // std::cout << payloadString << std::endl;
+    std::cout << sensorValues.size() << std::endl;
 
-    client.publish(sensor.getTopic(), payloadString.data(), payloadString.size());
+    int bursts = std::ceil(1.0 * sensorValues.size() / MAX_PACKETS_PER_BURST);
+    for (int b = 0; b < bursts; b++) {
+        int size = std::min((int)MAX_PACKETS_PER_BURST, (int)sensorValues.size() - b*MAX_PACKETS_PER_BURST);
+
+        msg.str("");
+        msg << "[";
+
+        bool first = true;
+        for (int i = 0; i < size; i++) {
+            auto &v = sensorValues[b*MAX_PACKETS_PER_BURST + i];
+            if (!first) {
+                msg << ",";
+            }
+            first = false;
+            msg << v.toJsonString();
+        }
+
+        msg << "]";
+        payloadString = msg.str();
+
+        client.publish(sensor.getTopic(), payloadString.data(), payloadString.size());
+    }
 }
 
 

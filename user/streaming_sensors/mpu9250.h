@@ -9,16 +9,27 @@ struct MPU9250Data : public Serializable {
     struct {
         uint32_t timestamp_lo;
         uint32_t timestamp_hi;
-        uint16_t gyro_x;
-        uint16_t gyro_y;
-        uint16_t gyro_z;
-        uint16_t acc_x;
-        uint16_t acc_y;
-        uint16_t acc_z;
-        uint16_t mag_x;
-        uint16_t mag_y;
-        uint16_t mag_z;
+        int16_t gyro_x;
+        int16_t gyro_y;
+        int16_t gyro_z;
+        int16_t acc_x;
+        int16_t acc_y;
+        int16_t acc_z;
+        int16_t mag_x;
+        int16_t mag_y;
+        int16_t mag_z;
     } __attribute__((packed)) POD;
+
+    uint64_t timeStamp;
+    double gyro_x;
+    double gyro_y;
+    double gyro_z;
+    double acc_x;
+    double acc_y;
+    double acc_z;
+    double mag_x;
+    double mag_y;
+    double mag_z;
 };
 
 class MPU9250 : public StreamingSensor<MPU9250Data> {

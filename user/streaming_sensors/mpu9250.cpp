@@ -37,7 +37,20 @@ std::optional<MPU9250Data> MPU9250::doPoll() {
         return {};
     }
 
-    // TODO: transform ADC values to useful units
+
+    static const double GYRO_FULL_SCALE = 2000.0;
+    static const double MAG_FULL_SCALE = 4800.0;
+    static const double ACC_FULL_SCALE = 4.0;
+
+    results.gyro_x = results.POD.gyro_x * GYRO_FULL_SCALE / 32768;
+    results.gyro_y = results.POD.gyro_y * GYRO_FULL_SCALE / 32768;
+    results.gyro_z = results.POD.gyro_z * GYRO_FULL_SCALE / 32768;
+    results.mag_x = results.POD.mag_x * MAG_FULL_SCALE / 32768;
+    results.mag_y = results.POD.mag_y * MAG_FULL_SCALE / 32768;
+    results.mag_z = results.POD.mag_z * MAG_FULL_SCALE / 32768;
+    results.acc_x = results.POD.acc_x * ACC_FULL_SCALE / 32768;
+    results.acc_y = results.POD.acc_y * ACC_FULL_SCALE / 32768;
+    results.acc_z = results.POD.acc_z * ACC_FULL_SCALE / 32768;
 
     // close character device
     (void) fclose(fd);
@@ -50,15 +63,15 @@ std::string MPU9250Data::toJsonString() const {
 
     std::stringstream ss;
     ss << "{";
-    ss << "\"gyro_x\":" << POD.gyro_x << ",";
-    ss << "\"gyro_y\":" << POD.gyro_y << ",";
-    ss << "\"gyro_z\":" << POD.gyro_z << ",";
-    ss << "\"acc_x\":" << POD.acc_x << ",";
-    ss << "\"acc_y\":" << POD.acc_y << ",";
-    ss << "\"acc_z\":" << POD.acc_z << ",";
-    ss << "\"mag_x\":" << POD.mag_x << ",";
-    ss << "\"mag_y\":" << POD.mag_y << ",";
-    ss << "\"mag_z\":" << POD.mag_z << ",";
+    ss << "\"gyro_x\":" << gyro_x << ",";
+    ss << "\"gyro_y\":" << gyro_y << ",";
+    ss << "\"gyro_z\":" << gyro_z << ",";
+    ss << "\"acc_x\":" << acc_x << ",";
+    ss << "\"acc_y\":" << acc_y << ",";
+    ss << "\"acc_z\":" << acc_z << ",";
+    ss << "\"mag_x\":" << mag_x << ",";
+    ss << "\"mag_y\":" << mag_y << ",";
+    ss << "\"mag_z\":" << mag_z << ",";
     ss << "\"timestamp\":" << TimeStampingUnit::getResolvedTimeStamp(timeStamp);
     ss << "}";
     return ss.str();

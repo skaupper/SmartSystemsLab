@@ -22,10 +22,8 @@ void APDS9301::doProcess(APDS9301Data const &data) {
     static const int SEGMENT_COUNT = 6;
     static const std::string CHARACTER_DEVICE = "/dev/sevensegment";
 
-    // TODO: do we see something?
     uint8_t brightness = data.POD.value >> 8;
-    // brightness = 0x7f;
-    uint8_t values[SEGMENT_COUNT]   = {'0', '0', '0', '0', '0', '0'};
+    uint8_t values[SEGMENT_COUNT]   = {0};
 
     auto _lck = lockFPGA();
 
@@ -84,8 +82,6 @@ std::optional<APDS9301Data> APDS9301::doPoll() {
         std::cerr << "Failed to read sensor values" << std::endl;
         return {};
     }
-
-    // TODO: transform ADC values to useful units if necessary
 
     // close character device
     (void) fclose(fd);
