@@ -20,7 +20,6 @@ struct MPU9250Data : public Serializable {
         int16_t mag_z;
     } __attribute__((packed)) POD;
 
-    uint64_t timeStamp;
     double gyro_x;
     double gyro_y;
     double gyro_z;

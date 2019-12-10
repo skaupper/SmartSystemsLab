@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <sstream>
+#include <cmath>
 
 #include "fpga.h"
 #include "tsu.h"
@@ -31,26 +32,31 @@ std::optional<MPU9250Data> MPU9250::doPoll() {
         return {};
     }
 
-    // TODO: is this working the way I think it is?
     if (fread(&results.POD, READ_SIZE, 1, fd) != 1) {
         std::cerr << "Failed to read sensor values" << std::endl;
         return {};
     }
 
+    //
+    // Translate values to more meaningful units
+    //
 
-    static const double GYRO_FULL_SCALE = 2000.0;
-    static const double MAG_FULL_SCALE = 4800.0;
-    static const double ACC_FULL_SCALE = 4.0;
+    // all sensors provide 16bit values proportionally to its full scale ranges
+    static const double GYRO_FULL_SCALE = 2000.0;               // degrees per second
+    static const double MAG_FULL_SCALE  = 4800.0;               // micro tesla
+    static const double ACC_FULL_SCALE  = 4.0;                  // g
 
-    results.gyro_x = results.POD.gyro_x * GYRO_FULL_SCALE / 32768;
-    results.gyro_y = results.POD.gyro_y * GYRO_FULL_SCALE / 32768;
-    results.gyro_z = results.POD.gyro_z * GYRO_FULL_SCALE / 32768;
-    results.mag_x = results.POD.mag_x * MAG_FULL_SCALE / 32768;
-    results.mag_y = results.POD.mag_y * MAG_FULL_SCALE / 32768;
-    results.mag_z = results.POD.mag_z * MAG_FULL_SCALE / 32768;
-    results.acc_x = results.POD.acc_x * ACC_FULL_SCALE / 32768;
-    results.acc_y = results.POD.acc_y * ACC_FULL_SCALE / 32768;
-    results.acc_z = results.POD.acc_z * ACC_FULL_SCALE / 32768;
+    static const int ADC_MAX_VAL        = std::pow(2, 16 - 1);  // values are signed integer
+
+    results.gyro_x = results.POD.gyro_x * GYRO_FULL_SCALE / ADC_MAX_VAL;
+    results.gyro_y = results.POD.gyro_y * GYRO_FULL_SCALE / ADC_MAX_VAL;
+    results.gyro_z = results.POD.gyro_z * GYRO_FULL_SCALE / ADC_MAX_VAL;
+    results.mag_x  = results.POD.mag_x * MAG_FULL_SCALE / ADC_MAX_VAL;
+    results.mag_y  = results.POD.mag_y * MAG_FULL_SCALE / ADC_MAX_VAL;
+    results.mag_z  = results.POD.mag_z * MAG_FULL_SCALE / ADC_MAX_VAL;
+    results.acc_x  = results.POD.acc_x * ACC_FULL_SCALE / ADC_MAX_VAL;
+    results.acc_y  = results.POD.acc_y * ACC_FULL_SCALE / ADC_MAX_VAL;
+    results.acc_z  = results.POD.acc_z * ACC_FULL_SCALE / ADC_MAX_VAL;
 
     // close character device
     (void) fclose(fd);

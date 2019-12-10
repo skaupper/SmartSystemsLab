@@ -1,14 +1,14 @@
 #include <mqtt/client.h>
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <functional>
 #include <iostream>
 #include <optional>
 #include <sstream>
 #include <string>
 #include <thread>
-#include <cmath>
-#include <algorithm>
 
 #include "apds9301.h"
 #include "fpga.h"
@@ -29,16 +29,19 @@ void publishSensorData(SENSOR &sensor, mqtt::client &client) {
     auto sensorValues = sensor.getQueue();
     std::cout << sensorValues.size() << std::endl;
 
+    // how many burst packets need to be sent?
     int bursts = std::ceil(1.0 * sensorValues.size() / MAX_PACKETS_PER_BURST);
+
     for (int b = 0; b < bursts; b++) {
-        int size = std::min((int)MAX_PACKETS_PER_BURST, (int)sensorValues.size() - b*MAX_PACKETS_PER_BURST);
+        // the size of the current burst packet
+        int size = std::min(MAX_PACKETS_PER_BURST, (int) sensorValues.size() - b * MAX_PACKETS_PER_BURST);
 
         msg.str("");
         msg << "[";
 
         bool first = true;
         for (int i = 0; i < size; i++) {
-            auto &v = sensorValues[b*MAX_PACKETS_PER_BURST + i];
+            auto &v = sensorValues[b * MAX_PACKETS_PER_BURST + i];
             if (!first) {
                 msg << ",";
             }

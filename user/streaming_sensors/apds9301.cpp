@@ -19,11 +19,11 @@ void APDS9301::doProcess(APDS9301Data const &data) {
     // dimm 7-segment display according to the latest light intensity
     //
 
-    static const int SEGMENT_COUNT = 6;
+    static const int SEGMENT_COUNT            = 6;
     static const std::string CHARACTER_DEVICE = "/dev/sevensegment";
 
-    uint8_t brightness = data.POD.value >> 8;
-    uint8_t values[SEGMENT_COUNT]   = {0};
+    uint8_t brightness            = data.POD.value >> 8;
+    uint8_t values[SEGMENT_COUNT] = {0};
 
     auto _lck = lockFPGA();
 
