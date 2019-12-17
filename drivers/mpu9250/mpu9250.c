@@ -62,6 +62,12 @@
 #define IOC_CMD_SET_PID _IO(4711, IOC_SET_PID)
 #define IOC_CMD_SET_THRESHOLD _IOW(4711, IOC_SET_THRESHOLD, uint32_t *)
 
+/* IO Control (IOCTL) */
+#define IOC_MODE_POLLING 0
+#define IOC_MODE_BUFFER 1
+#define IOC_CMD_SET_READ_POLLING __IO(4711, IOC_MODE_POLLING)
+#define IOC_CMD_SET_READ_BUFFER __IO(4711, IOC_MODE_BUFFER)
+
 typedef struct
 {
   uint32_t timestamp_lo;
