@@ -13,30 +13,34 @@ use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 use work.Global.all;
 
--- 0 -> Gyro X (16 Bit)
--- 1 -> Gyro Y (16 Bit)
--- 2 -> Gyro Z (16 Bit)
--- 3 -> Acc  X (16 Bit)
--- 4 -> Acc  Y (16 Bit)
--- 5 -> Acc  Z (16 Bit)
--- 6 -> Mag  X (16 Bit)
--- 7 -> Mag  Y (16 Bit)
--- 8 -> Mag  Z (16 Bit)
--- 9 -> lower word of timestamp
--- A -> upper word of timestamp
--- B -> Buffer CTRL + Data available
---      0 -> Buffer 0 enable (cleared on every interrupt)
---      1 -> Buffer 0 data available (read only)
---      2 -> Buffer 1 enable (cleared on every interrupt)
---      1 -> Buffer 1 data available (read only)
--- C -> IEN (Interrupt enable)
---      0 -> Buf0 Interrupt enable
---      1 -> Buf1 Interrupt enable
--- D -> ISR (Interrupt status register)
---      0 -> Buf0 Interrupt
---      1 -> Buf1 Interrupt
--- E -> Buffer select
--- F -> Buffer data
+-- Register Map
+-- - 0 -> Gyro X (16 Bit)
+-- - 1 -> Gyro Y (16 Bit)
+-- - 2 -> Gyro Z (16 Bit)
+-- - 3 -> Acc  X (16 Bit)
+-- - 4 -> Acc  Y (16 Bit)
+-- - 5 -> Acc  Z (16 Bit)
+-- - 6 -> Mag  X (16 Bit)
+-- - 7 -> Mag  Y (16 Bit)
+-- - 8 -> Mag  Z (16 Bit)
+-- - 9 -> lower word of timestamp
+-- - A -> upper word of timestamp
+-- - B -> Buffer CTRL + Data available
+--     - 0 -> Buffer 0 enable (cleared on every interrupt)
+--     - 1 -> Buffer 0 data available (read only)
+--     - 2 -> Buffer 1 enable (cleared on every interrupt)
+--     - 3 -> Buffer 1 data available (read only)
+--     - ...
+-- - C -> IEN (Interrupt enable)
+--     - 0 -> Buf0 Interrupt enable
+--     - 1 -> Buf1 Interrupt enable
+--     - ...
+-- - D -> ISR (Interrupt status register)
+--     - 0 -> Buf0 Interrupt
+--     - 1 -> Buf1 Interrupt
+--     - ...
+-- - E -> select buffer to use
+-- - F -> Buffer data: reading alternates between x, y and z
 
 entity mpu9250 is
    generic (
