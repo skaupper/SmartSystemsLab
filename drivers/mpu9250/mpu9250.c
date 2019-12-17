@@ -40,6 +40,12 @@
 #define MEM_OFFSET_TIMESTAMP_LOW (0x24)
 #define MEM_OFFSET_TIMESTAMP_HIGH (0x28)
 
+/* IO Control (IOCTL) */
+#define IOC_MODE_POLLING 0
+#define IOC_MODE_BUFFER 1
+#define IOC_CMD_SET_READ_POLLING __IO(4711, IOC_MODE_POLLING)
+#define IOC_CMD_SET_READ_BUFFER __IO(4711, IOC_MODE_BUFFER)
+
 typedef struct
 {
   uint32_t timestamp_lo;
@@ -128,9 +134,37 @@ static int dev_read(struct file *filep, char *buf, size_t count,
   return count;
 }
 
+/*
+ * @brief This function gets executed on ioctl.
+ */
+static int dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
+{
+  struct data *dev = container_of(filep->private_data,
+                                  struct data, misc);
+
+  switch (cmd)
+  {
+  case IOC_CMD_SET_READ_POLLING:
+    pr_info("dev_ioctl: Set cmd to 'read polling'.\n");
+    dev->mode = IOC_MODE_POLLING;
+    break;
+  case IOC_CMD_SET_READ_BUFFER:
+    pr_info("dev_ioctl: Set cmd to 'read buffer'.\n");
+    dev->mode = IOC_MODE_BUFFER;
+    break;
+  default:
+    pr_info("dev_ioctl: Unknown cmd. Exit.\n");
+    return -EINVAL;
+  }
+
+  pr_info("dev_ioctl: Successful exit.\n");
+  return 0;
+}
+
 static const struct file_operations dev_fops = {
     .owner = THIS_MODULE,
-    .read = dev_read};
+    .read = dev_read,
+    .unlocked_ioctl = dev_ioctl};
 
 static int dev_probe(struct platform_device *pdev)
 {
