@@ -158,6 +158,22 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
 {
   int i;
 
+  /* Read data, depending on current mode */
+  switch (dev->mode)
+  {
+  case IOC_MODE_POLLING:
+    pr_info("dev_read: Reading polling data.\n");
+    return 0;
+    break;
+  case IOC_MODE_BUFFER:
+    pr_info("dev_read: Reading shock buffer data.\n");
+    return 0;
+    break;
+  default:
+    pr_info("dev_read: Unknown mode is currently set.\n");
+    return -EINVAL;
+  }
+
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= SIZEOF_BUFFER_DATA_T))
     return 0;
