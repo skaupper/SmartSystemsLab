@@ -162,6 +162,11 @@
    type="clock"
    dir="end" />
  <interface
+   name="subsystemmpu9250_irq"
+   internal="subsystemMpu9250.irq"
+   type="interrupt"
+   dir="end" />
+ <interface
    name="subsystemmpu9250_mpuint"
    internal="subsystemMpu9250.mpuint"
    type="interrupt"

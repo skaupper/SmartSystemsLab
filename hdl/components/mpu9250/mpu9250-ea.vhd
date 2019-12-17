@@ -53,6 +53,7 @@ entity mpu9250 is
       avs_s0_readdata    : out std_logic_vector(31 downto 0);                    --       .readdata
       avs_s0_write       : in  std_logic                     := '0';             --       .write
       avs_s0_writedata   : in  std_logic_vector(31 downto 0) := (others => '0'); --       .writedata
+      irq_irq            : out std_logic;
       sclk, mosi         : out std_logic;
       miso               : in  std_logic;
       ss_n               : out std_logic_vector(0 downto 0);

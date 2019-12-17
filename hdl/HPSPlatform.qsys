@@ -1022,6 +1022,13 @@
    end="hmi.subsystemmpu9250_clk" />
  <connection kind="clock" version="18.1" start="clk_0.clk" end="hmi.switches_clk" />
  <connection
+   kind="interrupt"
+   version="18.1"
+   start="hps_0.f2h_irq0"
+   end="hmi.subsystemmpu9250_irq">
+  <parameter name="irqNumber" value="0" />
+ </connection>
+ <connection
    kind="reset"
    version="18.1"
    start="clk_0.clk_reset"

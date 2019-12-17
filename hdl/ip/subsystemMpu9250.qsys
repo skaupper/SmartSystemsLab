@@ -55,6 +55,7 @@
  <parameter name="useTestBenchNamingPattern" value="false" />
  <instanceScript></instanceScript>
  <interface name="clk" internal="clock_bridge_0.in_clk" type="clock" dir="end" />
+ <interface name="irq" internal="mpu9250.irq" type="interrupt" dir="end" />
  <interface name="mpuint" internal="mpu9250.mpuInt" type="interrupt" dir="start" />
  <interface
    name="reset"
