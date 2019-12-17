@@ -23,9 +23,10 @@
 
 #define DRIVER_NAME "mpu9250"
 
-#define NUM_BYTE_DATA (2 * 3 * 3)
+#define NUM_BYTE_POLLING_DATA (2 * 3 * 3)
+#define NUM_BYTE_SHOCK_DATA (1024 * 2 * 3)
 #define NUM_BYTE_TIMESTAMP 8
-#define BUF_SIZE (NUM_BYTE_DATA + NUM_BYTE_TIMESTAMP)
+#define BUF_SIZE (NUM_BYTE_POLLING_DATA + NUM_BYTE_TIMESTAMP + NUM_BYTE_SHOCK_DATA)
 
 #define MEM_OFFSET_DATA_GYRO_X (0x0)
 #define MEM_OFFSET_DATA_GYRO_Y (0x4)
@@ -52,12 +53,19 @@ typedef struct
   uint16_t mag_x;
   uint16_t mag_y;
   uint16_t mag_z;
+  uint16_t buf_acc_x[1024];
+  uint16_t buf_acc_y[1024];
+  uint16_t buf_acc_z[1024];
+  uint16_t buf_gyro_x[1024];
+  uint16_t buf_gyro_y[1024];
+  uint16_t buf_gyro_z[1024];
 } __attribute__((packed)) buffer_t;
 
 struct data
 {
   void *regs;
   buffer_t buffer;
+  int mode; /* 0..polling (default), 1..buffer */
   int size;
   struct miscdevice misc;
 };
