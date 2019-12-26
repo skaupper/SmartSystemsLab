@@ -17,6 +17,11 @@ public:
 
     virtual std::string getTopic() const = 0;
     std::vector<T> getQueue();
+
+    bool hasEventHappened();
+    std::vector<T> getEventQueue();
+    void setEventQueue(std::vector<T> &&newEventQueue);
+
     void startPolling();
     void stop();
 
@@ -27,15 +32,15 @@ protected:
 
 private:
     const double frequency;
-    static const int QUEUE_COUNT = 2;
 
-    bool running;
+    bool running = false;
+    bool eventHappened = false;
 
     std::mutex queueMutex;
+    std::mutex eventMutex;
 
-    int currentQueueIndex        = 0;
-    std::vector<T> *currentQueue = &queues[currentQueueIndex];
-    std::vector<T> queues[QUEUE_COUNT];
+    std::vector<T> queue;
+    std::vector<T> eventQueue;
 };
 
 

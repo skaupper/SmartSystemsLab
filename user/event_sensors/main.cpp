@@ -27,7 +27,7 @@ void publishSensorData(SENSOR &sensor, mqtt::client &client) {
     std::string payloadString;
 
     auto sensorValues = sensor.getQueue();
-    std::cout << sensorValues.size() << std::endl;
+    // std::cout << sensorValues.size() << std::endl;
 
     // how many burst packets need to be sent?
     int bursts = std::ceil(1.0 * sensorValues.size() / MAX_PACKETS_PER_BURST);
@@ -52,24 +52,24 @@ void publishSensorData(SENSOR &sensor, mqtt::client &client) {
         msg << "]";
         payloadString = msg.str();
 
-        client.publish(sensor.getTopic(), payloadString.data(), payloadString.size());
+        // client.publish(sensor.getTopic(), payloadString.data(), payloadString.size());
     }
 }
 
 
 int main() {
     static const std::string SERVER_URI = "193.170.192.224:1883";
-    static const std::string CLIENT_ID  = "streaming_sensors";
+    static const std::string CLIENT_ID  = "event_sensors";
 
     try {
-        // initFPGA("streaming_sensors");
+        initFPGA("event_sensors");
     } catch (const std::string &s) {
         std::cerr << "Failed to initialize FPGA: " << s << std::endl;
         return -1;
     }
 
     mqtt::client client(SERVER_URI, CLIENT_ID);
-    // client.connect();
+    client.connect();
 
     HDC1000 hdc1000(50);
     MPU9250 mpu9250(2);

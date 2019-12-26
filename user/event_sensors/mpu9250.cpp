@@ -1,63 +1,123 @@
 #include "mpu9250.h"
 
-#include <cstring>
-#include <iostream>
-#include <sstream>
-#include <cmath>
-#include <functional>
 #include <signal.h>
 #include <sys/ioctl.h>
-#include <unistd.h>
-#include <fcntl.h>
+
+#include <cmath>
+#include <cstring>
+#include <functional>
+#include <iostream>
+#include <sstream>
 
 #include "fpga.h"
+#include "mpu9250_conversion.txx"
 #include "tsu.h"
 
 
 /* IO Control (IOCTL) */
-#define IOC_MODE_POLLING 0
-#define IOC_MODE_BUFFER 1
+#define IOC_MODE_POLLING         0
+#define IOC_MODE_BUFFER          1
 #define IOC_CMD_SET_READ_POLLING _IO(4711, IOC_MODE_POLLING)
-#define IOC_CMD_SET_READ_BUFFER _IO(4711, IOC_MODE_BUFFER)
+#define IOC_CMD_SET_READ_BUFFER  _IO(4711, IOC_MODE_BUFFER)
 
 #define SIG_USR1 10
 
 
+#define EVENT_PACKETS 1024
+
+using namespace std::placeholders;
+
+
+struct MPU9250PollingPOD {
+    uint32_t timestamp_lo;
+    uint32_t timestamp_hi;
+    int16_t gyro_x;
+    int16_t gyro_y;
+    int16_t gyro_z;
+    int16_t acc_x;
+    int16_t acc_y;
+    int16_t acc_z;
+    int16_t mag_x;
+    int16_t mag_y;
+    int16_t mag_z;
+} __attribute__((packed));
+
+struct MPU9250EventPOD {
+    uint16_t acc_x[EVENT_PACKETS];
+    uint16_t acc_y[EVENT_PACKETS];
+    uint16_t acc_z[EVENT_PACKETS];
+    uint16_t gyro_x[EVENT_PACKETS];
+    uint16_t gyro_y[EVENT_PACKETS];
+    uint16_t gyro_z[EVENT_PACKETS];
+} __attribute__((packed));
+
+
+
 static const std::string CHARACTER_DEVICE = "/dev/mpu9250";
 static std::mutex mpuMutex;
+static std::function<void(std::vector<MPU9250Data> &&)> fSetEventQueue;
 
 
 static void signalHandler(int n, siginfo_t *info, void *unused) {
+    static const int READ_SIZE = sizeof(MPU9250EventPOD);
+    MPU9250EventPOD pod;
+
     auto _fpgaLck = lockFPGA();
     std::unique_lock _mpuLck(mpuMutex);
 
 
-    auto fd = open(CHARACTER_DEVICE.c_str(), O_RDWR);
-    if (fd == -1) {
+    auto fd = fopen(CHARACTER_DEVICE.c_str(), "rb");
+    if (!fd) {
         std::cerr << "Failed to open character device in signal handler" << std::endl;
         return;
     }
 
     // request the event buffers
-    if(ioctl(fd, IOC_CMD_SET_READ_BUFFER) < 0) {
+    if (ioctl(fileno(fd), IOC_CMD_SET_READ_BUFFER) < 0) {
         std::cerr << "Requesting the event buffers failed: " << strerror(errno) << std::endl;
-        close(fd);
+        fclose(fd);
         return;
     }
 
+    auto readSuccessful = true;
+    if (fread(&pod, READ_SIZE, 1, fd) != 1) {
+        std::cerr << "Failed to read event data" << std::endl;
+        readSuccessful = false;
+    }
 
+    if (readSuccessful) {
+        std::vector<MPU9250Data> eventData;
 
+        for (int i = 0; i < EVENT_PACKETS; ++i) {
+            MPU9250Data data = {};
 
+            // TODO: do we need the remaining fields?
+            data.acc_x  = pod.acc_x[i];
+            data.acc_y  = pod.acc_y[i];
+            data.acc_z  = pod.acc_z[i];
+            data.gyro_x = pod.gyro_x[i];
+            data.gyro_y = pod.gyro_y[i];
+            data.gyro_z = pod.gyro_z[i];
+
+            convertAccUnits(data, data);
+            convertGyroUnits(data, data);
+
+            eventData.emplace_back(std::move(data));
+        }
+
+        fSetEventQueue(std::move(eventData));
+    }
 
     // reset the mode to polling mode
-    if(ioctl(fd, IOC_CMD_SET_READ_POLLING) < 0) {
+    if (ioctl(fileno(fd), IOC_CMD_SET_READ_POLLING) < 0) {
         std::cerr << "Requesting polling mode failed: " << strerror(errno) << std::endl;
-        std::cerr << "ATTENTION: The application invariants are broken now! An application restart is required!" << std::endl;
-        close(fd);
+        std::cerr << "ATTENTION: The application invariants are broken now! An application restart is required!"
+                  << std::endl;
+        fclose(fd);
         return;
     }
 
-    close(fd);
+    fclose(fd);
 }
 
 
@@ -68,17 +128,19 @@ std::string MPU9250::getTopic() const {
 }
 
 MPU9250::MPU9250(double frequency) : StreamingSensor(frequency) {
+    fSetEventQueue = std::bind(&MPU9250::setEventQueue, this, _1);
+
     struct sigaction sig;
     sig.sa_sigaction = signalHandler;
-    sig.sa_flags = SA_SIGINFO;
+    sig.sa_flags     = SA_SIGINFO;
     sigaction(SIG_USR1, &sig, NULL);
 }
 
 std::optional<MPU9250Data> MPU9250::doPoll() {
-    return std::nullopt;
-
-    static const int READ_SIZE = sizeof(MPU9250Data::POD);
+    static const int READ_SIZE = sizeof(MPU9250PollingPOD);
     MPU9250Data results {};
+    MPU9250PollingPOD pod {};
+
 
     // lock fpga device using a lock guard
     // the result is never used, but it keeps the mutex locked until it goes out of scope
@@ -92,31 +154,15 @@ std::optional<MPU9250Data> MPU9250::doPoll() {
         return {};
     }
 
-    if (fread(&results.POD, READ_SIZE, 1, fd) != 1) {
+    if (fread(&pod, READ_SIZE, 1, fd) != 1) {
         std::cerr << "Failed to read sensor values" << std::endl;
         return {};
     }
 
-    //
-    // Translate values to more meaningful units
-    //
-
-    // all sensors provide 16bit values proportionally to its full scale ranges
-    static const double GYRO_FULL_SCALE = 2000.0;               // degrees per second
-    static const double MAG_FULL_SCALE  = 4800.0;               // micro tesla
-    static const double ACC_FULL_SCALE  = 4.0;                  // g
-
-    static const int ADC_MAX_VAL        = std::pow(2, 16 - 1);  // values are signed integer
-
-    results.gyro_x = results.POD.gyro_x * GYRO_FULL_SCALE / ADC_MAX_VAL;
-    results.gyro_y = results.POD.gyro_y * GYRO_FULL_SCALE / ADC_MAX_VAL;
-    results.gyro_z = results.POD.gyro_z * GYRO_FULL_SCALE / ADC_MAX_VAL;
-    results.mag_x  = results.POD.mag_x * MAG_FULL_SCALE / ADC_MAX_VAL;
-    results.mag_y  = results.POD.mag_y * MAG_FULL_SCALE / ADC_MAX_VAL;
-    results.mag_z  = results.POD.mag_z * MAG_FULL_SCALE / ADC_MAX_VAL;
-    results.acc_x  = results.POD.acc_x * ACC_FULL_SCALE / ADC_MAX_VAL;
-    results.acc_y  = results.POD.acc_y * ACC_FULL_SCALE / ADC_MAX_VAL;
-    results.acc_z  = results.POD.acc_z * ACC_FULL_SCALE / ADC_MAX_VAL;
+    results.timeStamp = (((uint64_t) pod.timestamp_hi) << 32) | pod.timestamp_lo;
+    convertAccUnits(pod, results);
+    convertMagUnits(pod, results);
+    convertGyroUnits(pod, results);
 
     // close character device
     (void) fclose(fd);
@@ -125,8 +171,6 @@ std::optional<MPU9250Data> MPU9250::doPoll() {
 }
 
 std::string MPU9250Data::toJsonString() const {
-    uint64_t timeStamp = (((uint64_t) POD.timestamp_hi) << 32) | POD.timestamp_lo;
-
     std::stringstream ss;
     ss << "{";
     ss << "\"gyro_x\":" << gyro_x << ",";
