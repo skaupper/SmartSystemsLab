@@ -20,11 +20,12 @@
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
+#include <linux/ioctl.h>
 
 #define DRIVER_NAME "mpu9250"
 
 #define NUM_BYTE_POLLING_DATA (2 * 3 * 3)
-#define NUM_BYTE_SHOCK_DATA (1024 * 2 * 3)
+#define NUM_BYTE_SHOCK_DATA (1024 * 2 * 2 * 3)
 #define NUM_BYTE_TIMESTAMP 8
 #define BUF_SIZE (NUM_BYTE_POLLING_DATA + NUM_BYTE_TIMESTAMP + NUM_BYTE_SHOCK_DATA)
 
@@ -43,8 +44,8 @@
 /* IO Control (IOCTL) */
 #define IOC_MODE_POLLING 0
 #define IOC_MODE_BUFFER 1
-#define IOC_CMD_SET_READ_POLLING __IO(4711, IOC_MODE_POLLING)
-#define IOC_CMD_SET_READ_BUFFER __IO(4711, IOC_MODE_BUFFER)
+#define IOC_CMD_SET_READ_POLLING _IO(4711, IOC_MODE_POLLING)
+#define IOC_CMD_SET_READ_BUFFER _IO(4711, IOC_MODE_BUFFER)
 
 typedef struct
 {
@@ -153,7 +154,7 @@ static int dev_read(struct file *filep, char *buf, size_t count,
 /*
  * @brief This function gets executed on ioctl.
  */
-static int dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
+static long dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 {
   struct data *dev = container_of(filep->private_data,
                                   struct data, misc);
@@ -169,8 +170,9 @@ static int dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
     dev->mode = IOC_MODE_BUFFER;
     break;
   default:
-    pr_info("dev_ioctl: Unknown cmd. Exit.\n");
-    return -EINVAL;
+    /* it seems like ioctl is also called for all invocations of fread with cmd 0x5041 (TCGETS) */
+    // pr_info("dev_ioctl: Unknown cmd (%u). Exit.\n", cmd);
+    return 0;
   }
 
   pr_info("dev_ioctl: Successful exit.\n");
