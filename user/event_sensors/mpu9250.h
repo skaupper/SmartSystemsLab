@@ -3,8 +3,6 @@
 
 #include "sensors.h"
 
-#include <signal.h>
-
 
 struct MPU9250Data : public Serializable {
     std::string toJsonString() const override;

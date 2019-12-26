@@ -5,22 +5,61 @@
 #include <sstream>
 #include <cmath>
 #include <functional>
+#include <signal.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "fpga.h"
 #include "tsu.h"
 
 
-using namespace std::placeholders;
-
+/* IO Control (IOCTL) */
+#define IOC_MODE_POLLING 0
+#define IOC_MODE_BUFFER 1
+#define IOC_CMD_SET_READ_POLLING _IO(4711, IOC_MODE_POLLING)
+#define IOC_CMD_SET_READ_BUFFER _IO(4711, IOC_MODE_BUFFER)
 
 #define SIG_USR1 10
 
 
+static const std::string CHARACTER_DEVICE = "/dev/mpu9250";
+static std::mutex mpuMutex;
+
+
 static void signalHandler(int n, siginfo_t *info, void *unused) {
-    std::cout << "signal received" << std::endl;
+    auto _fpgaLck = lockFPGA();
+    std::unique_lock _mpuLck(mpuMutex);
+
+
+    auto fd = open(CHARACTER_DEVICE.c_str(), O_RDWR);
+    if (fd == -1) {
+        std::cerr << "Failed to open character device in signal handler" << std::endl;
+        return;
+    }
+
+    // request the event buffers
+    if(ioctl(fd, IOC_CMD_SET_READ_BUFFER) < 0) {
+        std::cerr << "Requesting the event buffers failed: " << strerror(errno) << std::endl;
+        close(fd);
+        return;
+    }
+
+
+
+
+
+    // reset the mode to polling mode
+    if(ioctl(fd, IOC_CMD_SET_READ_POLLING) < 0) {
+        std::cerr << "Requesting polling mode failed: " << strerror(errno) << std::endl;
+        std::cerr << "ATTENTION: The application invariants are broken now! An application restart is required!" << std::endl;
+        close(fd);
+        return;
+    }
+
+    close(fd);
 }
 
-static bool
 
 
 std::string MPU9250::getTopic() const {
@@ -36,7 +75,6 @@ MPU9250::MPU9250(double frequency) : StreamingSensor(frequency) {
 }
 
 std::optional<MPU9250Data> MPU9250::doPoll() {
-    static const std::string CHARACTER_DEVICE = "/dev/mpu9250";
     return std::nullopt;
 
     static const int READ_SIZE = sizeof(MPU9250Data::POD);
@@ -44,7 +82,8 @@ std::optional<MPU9250Data> MPU9250::doPoll() {
 
     // lock fpga device using a lock guard
     // the result is never used, but it keeps the mutex locked until it goes out of scope
-    auto _lck = lockFPGA();
+    auto _fpgaLck = lockFPGA();
+    std::unique_lock _mpuLck(mpuMutex);
 
     // open character device
     auto fd = fopen(CHARACTER_DEVICE.c_str(), "rb");
