@@ -14,20 +14,32 @@
 #include "tsu.h"
 
 
+using namespace std::placeholders;
+
+
+
+/* Helper macro for creating the JSON string. */
+#define ADD_FIELD_IF_AVAILABLE(stream, f)                                                                              \
+    do {                                                                                                               \
+        if (f.has_value()) {                                                                                           \
+            stream << "\"" #f "\":" << f.value() << ",";                                                               \
+        }                                                                                                              \
+    } while (0)
+
+
 /* IO Control (IOCTL) */
 #define IOC_MODE_POLLING         0
 #define IOC_MODE_BUFFER          1
 #define IOC_CMD_SET_READ_POLLING _IO(4711, IOC_MODE_POLLING)
 #define IOC_CMD_SET_READ_BUFFER  _IO(4711, IOC_MODE_BUFFER)
 
-#define SIG_USR1 10
+
+/* Event specific defines */
+#define EVENT_SIGNAL_NR 10
+#define EVENT_PACKETS   1024
 
 
-#define EVENT_PACKETS 1024
-
-using namespace std::placeholders;
-
-
+/* Data structures used for reading the character device */
 struct MPU9250PollingPOD {
     uint32_t timestamp_lo;
     uint32_t timestamp_hi;
@@ -52,13 +64,18 @@ struct MPU9250EventPOD {
 } __attribute__((packed));
 
 
-
+/* Constants and variables used to communication with the CDEV and the main application */
 static const std::string CHARACTER_DEVICE = "/dev/mpu9250";
 static std::mutex mpuMutex;
 static std::function<void(std::vector<MPU9250Data> &&)> fSetEventQueue;
 
 
-static void signalHandler(int n, siginfo_t *info, void *unused) {
+
+//
+// Implementation of the sensor in event mode
+//
+
+static void eventDataReady(int, siginfo_t *, void *) {
     static const int READ_SIZE = sizeof(MPU9250EventPOD);
     MPU9250EventPOD pod;
 
@@ -79,6 +96,7 @@ static void signalHandler(int n, siginfo_t *info, void *unused) {
         return;
     }
 
+
     auto readSuccessful = true;
     if (fread(&pod, READ_SIZE, 1, fd) != 1) {
         std::cerr << "Failed to read event data" << std::endl;
@@ -90,23 +108,25 @@ static void signalHandler(int n, siginfo_t *info, void *unused) {
 
         for (int i = 0; i < EVENT_PACKETS; ++i) {
             MPU9250Data data = {};
+            MPU9250PollingPOD tmp;
 
             // TODO: do we need the remaining fields?
-            data.acc_x  = pod.acc_x[i];
-            data.acc_y  = pod.acc_y[i];
-            data.acc_z  = pod.acc_z[i];
-            data.gyro_x = pod.gyro_x[i];
-            data.gyro_y = pod.gyro_y[i];
-            data.gyro_z = pod.gyro_z[i];
+            tmp.acc_x  = pod.acc_x[i];
+            tmp.acc_y  = pod.acc_y[i];
+            tmp.acc_z  = pod.acc_z[i];
+            tmp.gyro_x = pod.gyro_x[i];
+            tmp.gyro_y = pod.gyro_y[i];
+            tmp.gyro_z = pod.gyro_z[i];
 
-            convertAccUnits(data, data);
-            convertGyroUnits(data, data);
+            convertAccUnits(tmp, data);
+            convertGyroUnits(tmp, data);
 
             eventData.emplace_back(std::move(data));
         }
 
         fSetEventQueue(std::move(eventData));
     }
+
 
     // reset the mode to polling mode
     if (ioctl(fileno(fd), IOC_CMD_SET_READ_POLLING) < 0) {
@@ -122,6 +142,10 @@ static void signalHandler(int n, siginfo_t *info, void *unused) {
 
 
 
+//
+// Implementation of the sensor in polling mode
+//
+
 std::string MPU9250::getTopic() const {
     static const std::string TOPIC_NAME = "sensors/mpu9250";
     return TOPIC_NAME;
@@ -131,9 +155,9 @@ MPU9250::MPU9250(double frequency) : StreamingSensor(frequency) {
     fSetEventQueue = std::bind(&MPU9250::setEventQueue, this, _1);
 
     struct sigaction sig;
-    sig.sa_sigaction = signalHandler;
+    sig.sa_sigaction = eventDataReady;
     sig.sa_flags     = SA_SIGINFO;
-    sigaction(SIG_USR1, &sig, NULL);
+    sigaction(EVENT_SIGNAL_NR, &sig, NULL);
 }
 
 std::optional<MPU9250Data> MPU9250::doPoll() {
@@ -147,41 +171,45 @@ std::optional<MPU9250Data> MPU9250::doPoll() {
     auto _fpgaLck = lockFPGA();
     std::unique_lock _mpuLck(mpuMutex);
 
-    // open character device
+
     auto fd = fopen(CHARACTER_DEVICE.c_str(), "rb");
     if (!fd) {
         std::cerr << "Failed to open character device '" << CHARACTER_DEVICE << "'" << std::endl;
         return {};
     }
 
+
     if (fread(&pod, READ_SIZE, 1, fd) != 1) {
         std::cerr << "Failed to read sensor values" << std::endl;
         return {};
     }
+
 
     results.timeStamp = (((uint64_t) pod.timestamp_hi) << 32) | pod.timestamp_lo;
     convertAccUnits(pod, results);
     convertMagUnits(pod, results);
     convertGyroUnits(pod, results);
 
-    // close character device
+
     (void) fclose(fd);
 
-    return std::make_optional(results);
+    return results;
 }
 
 std::string MPU9250Data::toJsonString() const {
     std::stringstream ss;
     ss << "{";
-    ss << "\"gyro_x\":" << gyro_x << ",";
-    ss << "\"gyro_y\":" << gyro_y << ",";
-    ss << "\"gyro_z\":" << gyro_z << ",";
-    ss << "\"acc_x\":" << acc_x << ",";
-    ss << "\"acc_y\":" << acc_y << ",";
-    ss << "\"acc_z\":" << acc_z << ",";
-    ss << "\"mag_x\":" << mag_x << ",";
-    ss << "\"mag_y\":" << mag_y << ",";
-    ss << "\"mag_z\":" << mag_z << ",";
+
+    ADD_FIELD_IF_AVAILABLE(ss, gyro_x);
+    ADD_FIELD_IF_AVAILABLE(ss, gyro_y);
+    ADD_FIELD_IF_AVAILABLE(ss, gyro_z);
+    ADD_FIELD_IF_AVAILABLE(ss, acc_x);
+    ADD_FIELD_IF_AVAILABLE(ss, acc_y);
+    ADD_FIELD_IF_AVAILABLE(ss, acc_z);
+    ADD_FIELD_IF_AVAILABLE(ss, mag_x);
+    ADD_FIELD_IF_AVAILABLE(ss, mag_y);
+    ADD_FIELD_IF_AVAILABLE(ss, mag_z);
+
     ss << "\"timestamp\":" << TimeStampingUnit::getResolvedTimeStamp(timeStamp);
     ss << "}";
     return ss.str();

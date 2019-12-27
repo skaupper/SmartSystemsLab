@@ -8,15 +8,15 @@ struct MPU9250Data : public Serializable {
     std::string toJsonString() const override;
 
     uint64_t timeStamp;
-    double gyro_x;
-    double gyro_y;
-    double gyro_z;
-    double acc_x;
-    double acc_y;
-    double acc_z;
-    double mag_x;
-    double mag_y;
-    double mag_z;
+    std::optional<double> gyro_x;
+    std::optional<double> gyro_y;
+    std::optional<double> gyro_z;
+    std::optional<double> acc_x;
+    std::optional<double> acc_y;
+    std::optional<double> acc_z;
+    std::optional<double> mag_x;
+    std::optional<double> mag_y;
+    std::optional<double> mag_z;
 };
 
 class MPU9250 : public StreamingSensor<MPU9250Data> {
