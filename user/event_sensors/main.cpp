@@ -19,29 +19,27 @@
 using namespace std::literals::chrono_literals;
 
 
-template<class SENSOR>
-void publishSensorData(SENSOR &sensor, mqtt::client &client) {
+template<class DATA>
+void publishData(const std::vector<DATA> &data, const std::string &topic, mqtt::client &client) {
     static const int MAX_PACKETS_PER_BURST = 100;
 
     std::stringstream msg;
     std::string payloadString;
 
-    auto sensorValues = sensor.getQueue();
-    // std::cout << sensorValues.size() << std::endl;
 
     // how many burst packets need to be sent?
-    int bursts = std::ceil(1.0 * sensorValues.size() / MAX_PACKETS_PER_BURST);
+    int bursts = std::ceil(1.0 * data.size() / MAX_PACKETS_PER_BURST);
 
     for (int b = 0; b < bursts; b++) {
         // the size of the current burst packet
-        int size = std::min(MAX_PACKETS_PER_BURST, (int) sensorValues.size() - b * MAX_PACKETS_PER_BURST);
+        int size = std::min(MAX_PACKETS_PER_BURST, (int) data.size() - b * MAX_PACKETS_PER_BURST);
 
         msg.str("");
         msg << "[";
 
         bool first = true;
         for (int i = 0; i < size; i++) {
-            auto &v = sensorValues[b * MAX_PACKETS_PER_BURST + i];
+            auto &v = data[b * MAX_PACKETS_PER_BURST + i];
             if (!first) {
                 msg << ",";
             }
@@ -52,8 +50,19 @@ void publishSensorData(SENSOR &sensor, mqtt::client &client) {
         msg << "]";
         payloadString = msg.str();
 
-        // client.publish(sensor.getTopic(), payloadString.data(), payloadString.size());
+        client.publish(topic, payloadString.data(), payloadString.size());
     }
+}
+
+template<class SENSOR>
+void publishSensorData(SENSOR &sensor, mqtt::client &client) {
+    auto pollingData = sensor.getQueue();
+    auto eventData = sensor.getEventQueue();
+
+    // std::cout << pollingData.size() << std::endl;
+
+    publishData(pollingData, sensor.getTopic(), client);
+    publishData(eventData, sensor.getTopic(), client);
 }
 
 
@@ -72,30 +81,34 @@ int main() {
     client.connect();
 
     HDC1000 hdc1000(50);
-    MPU9250 mpu9250(2);
+    // TODO: the MQTT lib has some problems with sending this much data, whats the cause for this?
+    MPU9250 mpu9250(1000);
     APDS9301 apds9301(2.5);
 
     // start a thread for each sensor
     std::vector<std::thread> sensorThreads;
-    // sensorThreads.emplace_back(std::bind(&HDC1000::startPolling, &hdc1000));
+    sensorThreads.emplace_back(std::bind(&HDC1000::startPolling, &hdc1000));
     sensorThreads.emplace_back(std::bind(&MPU9250::startPolling, &mpu9250));
-    // sensorThreads.emplace_back(std::bind(&APDS9301::startPolling, &apds9301));
+    sensorThreads.emplace_back(std::bind(&APDS9301::startPolling, &apds9301));
 
-
+    auto iterationEnd = std::chrono::high_resolution_clock::now();
     while (true) {
+        iterationEnd += std::chrono::milliseconds(1000);
+
         // std::cout << "HDC1000: ";
-        // publishSensorData(hdc1000, client);
+        publishSensorData(hdc1000, client);
         // std::cout << "MPU9250: ";
         publishSensorData(mpu9250, client);
         // std::cout << "APDS9301: ";
-        // publishSensorData(apds9301, client);
-        std::this_thread::sleep_for(1000ms);
+        publishSensorData(apds9301, client);
+
+        std::this_thread::sleep_until(iterationEnd);
     }
 
 
-    // hdc1000.stop();
+    hdc1000.stop();
     mpu9250.stop();
-    // apds9301.stop();
+    apds9301.stop();
 
     for (auto &&t: sensorThreads) {
         t.join();
