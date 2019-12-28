@@ -24,10 +24,12 @@
 
 #define DRIVER_NAME "mpu9250"
 
-#define NUM_BYTE_POLLING_DATA (2 * 3 * 3)
-#define NUM_BYTE_SHOCK_DATA (1024 * 2 * 2 * 3)
-#define NUM_BYTE_TIMESTAMP 8
-#define BUF_SIZE (NUM_BYTE_POLLING_DATA + NUM_BYTE_TIMESTAMP + NUM_BYTE_SHOCK_DATA)
+#define NUM_BYTE_SENSOR_DATA (3 * 3 * sizeof(uint16_t))
+#define NUM_BYTE_TIMESTAMP (2 * sizeof(uint32_t))
+#define NUM_BYTE_SHOCK_DATA (1024 * 2 * 3 * sizeof(uint16_t))
+
+#define SIZEOF_POLLING_DATA_T (NUM_BYTE_SENSOR_DATA + NUM_BYTE_TIMESTAMP)
+#define SIZEOF_BUFFER_DATA_T (NUM_BYTE_SHOCK_DATA)
 
 #define MEM_OFFSET_DATA_GYRO_X (0x0)
 #define MEM_OFFSET_DATA_GYRO_Y (0x4)
@@ -92,12 +94,12 @@ static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *
   unsigned int rdata;
 
   /* check out of bound access */
-  if ((*offp < 0) || (*offp >= sizeof(dev->polling_data)))
+  if ((*offp < 0) || (*offp >= SIZEOF_POLLING_DATA_T))
     return 0;
 
   /* limit number of readable bytes to maximum which is still possible */
-  if ((*offp + count) > sizeof(dev->polling_data))
-    count = BUF_SIZE - *offp;
+  if ((*offp + count) > SIZEOF_POLLING_DATA_T)
+    count = SIZEOF_POLLING_DATA_T - *offp;
 
   /* read data from FPGA and store into kernel space buffer */
   rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_X);
@@ -147,9 +149,15 @@ static int dev_read(struct file *filep, char *buf, size_t count,
   struct data *dev = container_of(filep->private_data,
                                   struct data, misc);
 
-  if (BUF_SIZE != sizeof(dev->polling_data))
+  if (SIZEOF_POLLING_DATA_T != sizeof(dev->polling_data))
   {
-    printk(KERN_ERR "Data struct buffer_t is not allocated as expected.\n");
+    printk(KERN_ERR "Data struct polling_data_t is not allocated as expected.\n");
+    return -ENOEXEC;
+  }
+
+  if (SIZEOF_BUFFER_DATA_T != sizeof(dev->buffer_data))
+  {
+    printk(KERN_ERR "Data struct buffer_data_t is not allocated as expected.\n");
     return -ENOEXEC;
   }
 
