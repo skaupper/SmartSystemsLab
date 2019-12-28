@@ -40,6 +40,11 @@
 #define MEM_OFFSET_DATA_MAG_Z (0x20)
 #define MEM_OFFSET_TIMESTAMP_LOW (0x24)
 #define MEM_OFFSET_TIMESTAMP_HIGH (0x28)
+#define MEM_OFFSET_BUF_CTRL_STATUS (0X2C)
+#define MEM_OFFSET_BUF_IEN (0X30)
+#define MEM_OFFSET_BUF_ISR (0X34)
+#define MEM_OFFSET_BUF_SELECT (0X38)
+#define MEM_OFFSET_BUF_DATA (0X3C)
 
 /* IO Control (IOCTL) */
 #define IOC_MODE_POLLING 0
@@ -60,22 +65,78 @@ typedef struct
   uint16_t mag_x;
   uint16_t mag_y;
   uint16_t mag_z;
+} __attribute__((packed)) polling_data_t;
+
+typedef struct
+{
   uint16_t buf_acc_x[1024];
   uint16_t buf_acc_y[1024];
   uint16_t buf_acc_z[1024];
   uint16_t buf_gyro_x[1024];
   uint16_t buf_gyro_y[1024];
   uint16_t buf_gyro_z[1024];
-} __attribute__((packed)) buffer_t;
+} __attribute__((packed)) buffer_data_t;
 
 struct data
 {
   void *regs;
-  buffer_t buffer;
-  int mode; /* 0..polling (default), 1..buffer */
+  buffer_data_t buffer_data;
+  polling_data_t polling_data;
+  int mode; /* 0..polling, 1..buffer */
   int size;
   struct miscdevice misc;
 };
+
+static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *offp)
+{
+  unsigned int rdata;
+
+  /* check out of bound access */
+  if ((*offp < 0) || (*offp >= sizeof(dev->polling_data)))
+    return 0;
+
+  /* limit number of readable bytes to maximum which is still possible */
+  if ((*offp + count) > sizeof(dev->polling_data))
+    count = BUF_SIZE - *offp;
+
+  /* read data from FPGA and store into kernel space buffer */
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_X);
+  dev->polling_data.gyro_x = (rdata & 0x0000FFFF);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Y);
+  dev->polling_data.gyro_y = (rdata & 0x0000FFFF);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Z);
+  dev->polling_data.gyro_z = (rdata & 0x0000FFFF);
+
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_X);
+  dev->polling_data.acc_x = (rdata & 0x0000FFFF);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_Y);
+  dev->polling_data.acc_y = (rdata & 0x0000FFFF);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_Z);
+  (dev->polling_data.acc_z = (rdata & 0x0000FFFF));
+
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_X);
+  dev->polling_data.mag_x = (rdata & 0x0000FFFF);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_Y);
+  dev->polling_data.mag_y = (rdata & 0x0000FFFF);
+  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_Z);
+  dev->polling_data.mag_z = (rdata & 0x0000FFFF);
+
+  dev->polling_data.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
+  dev->polling_data.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
+
+  /* copy data from kernel space buffer into user space */
+  if (count > 0)
+    count = count - copy_to_user(buf, (char *)&dev->polling_data + *offp, count);
+
+  *offp += count;
+
+  return count;
+}
+
+static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *offp)
+{
+  return 0;
+}
 
 /*
  * @brief This function gets executed on fread.
@@ -85,9 +146,8 @@ static int dev_read(struct file *filep, char *buf, size_t count,
 {
   struct data *dev = container_of(filep->private_data,
                                   struct data, misc);
-  unsigned int rdata;
 
-  if (BUF_SIZE != sizeof(dev->buffer))
+  if (BUF_SIZE != sizeof(dev->polling_data))
   {
     printk(KERN_ERR "Data struct buffer_t is not allocated as expected.\n");
     return -ENOEXEC;
@@ -98,57 +158,16 @@ static int dev_read(struct file *filep, char *buf, size_t count,
   {
   case IOC_MODE_POLLING:
     pr_info("dev_read: Reading polling data.\n");
-    return 0;
+    return read_polling_data(dev, buf, count, offp);
     break;
   case IOC_MODE_BUFFER:
     pr_info("dev_read: Reading shock buffer data.\n");
-    return 0;
+    return read_buffer_data(dev, buf, count, offp);
     break;
   default:
     pr_info("dev_read: Unknown mode is currently set.\n");
     return -EINVAL;
   }
-
-  /* check out of bound access */
-  if ((*offp < 0) || (*offp >= BUF_SIZE))
-    return 0;
-
-  /* limit number of readable bytes to maximum which is still possible */
-  if ((*offp + count) > BUF_SIZE)
-    count = BUF_SIZE - *offp;
-
-  /* read data from FPGA and store into kernel space buffer */
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_X);
-  dev->buffer.gyro_x = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Y);
-  dev->buffer.gyro_y = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Z);
-  dev->buffer.gyro_z = (rdata & 0x0000FFFF);
-
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_X);
-  dev->buffer.acc_x = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_Y);
-  dev->buffer.acc_y = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_Z);
-  (dev->buffer.acc_z = (rdata & 0x0000FFFF));
-
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_X);
-  dev->buffer.mag_x = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_Y);
-  dev->buffer.mag_y = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_Z);
-  dev->buffer.mag_z = (rdata & 0x0000FFFF);
-
-  dev->buffer.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
-  dev->buffer.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
-
-  /* copy data from kernel space buffer into user space */
-  if (count > 0)
-    count = count - copy_to_user(buf, (char *)&dev->buffer + *offp, count);
-
-  *offp += count;
-
-  return count;
 }
 
 /*
