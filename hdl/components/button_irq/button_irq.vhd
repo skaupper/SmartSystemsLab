@@ -28,7 +28,7 @@ entity button_irq is
       clk_i               : in  std_logic;
       rst_i              : in  std_logic;
 
-      button_i           : in   std_ulogic_vector(1 downto 0);
+      button_i           : in   std_logic_vector(1 downto 0);
       interrupt_o        : out  std_logic;
 
       avs_s0_address     : in  std_logic_vector(1 downto 0);
@@ -90,7 +90,7 @@ begin -- architecture rtl
       if avs_s0_read = '1' then
         case (avs_s0_address) is
           when cAddrData =>
-              nxR.readdata(button_i'range) <= button_i;
+              nxR.readdata(button_i'range) <= std_ulogic_vector(button_i);
           when cAddrTsLo =>
               nxR.readdata <= std_ulogic_vector(reg.timestamp(31 downto 0));
           when cAddrTsUp =>

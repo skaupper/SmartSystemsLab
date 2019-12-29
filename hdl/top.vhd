@@ -8,6 +8,7 @@ PORT(
     ---------FPGA Connections-------------
     CLOCK_50            : in    std_logic;
     SW                  : in    std_logic_vector(9 downto 0);
+    KEY                 : in    std_logic_vector(3 downto 0);
     LEDR                : out   std_logic_vector(9 downto 0);
 
 

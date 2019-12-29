@@ -17,4 +17,9 @@ work/
 transcript
 *.wlf
 *~
+
 .qsys_edit/
+db/
+HPSPlatform/
+*.sopcinfo
+*.qdf
