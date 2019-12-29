@@ -7,7 +7,7 @@
    description=""
    tags=""
    categories="System" />
- <parameter name="bonusData"><![CDATA[bonusData 
+ <parameter name="bonusData"><![CDATA[bonusData
 {
    element HPSPlatform
    {
@@ -158,6 +158,43 @@
       datum _originalDeviceFamily
       {
          value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element HPSPlatform
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element button_irq_0
+   {
+      datum _sortIndex
+      {
+         value = "3";
+         type = "int";
+      }
+   }
+   element button_irq_0.clk_i
+   {
+      datum _tags
+      {
+         value = "";
+         type = "String";
+      }
+   }
+   element button_irq_0.s0
+   {
+      datum _lockedAddress
+      {
+         value = "1";
+         type = "boolean";
+      }
+      datum baseAddress
+      {
+         value = "1088";
          type = "String";
       }
    }
@@ -367,6 +404,10 @@
    internal="hmi.switches_external_connection"
    type="conduit"
    dir="end" />
+ <module name="button_irq_0" kind="button_irq" version="1.0" enabled="1">
+  <parameter name="gClkFrequency" value="50000000" />
+  <parameter name="gI2cFrequency" value="400000" />
+ </module>
  <module name="clk_0" kind="clock_source" version="18.1" enabled="1">
   <parameter name="clockFrequency" value="50000000" />
   <parameter name="clockFrequencyKnown" value="true" />
@@ -943,6 +984,15 @@
    kind="avalon"
    version="18.1"
    start="hps_0.h2f_lw_axi_master"
+   end="button_irq_0.s0">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0440" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="18.1"
+   start="hps_0.h2f_lw_axi_master"
    end="hmi.seven_segment_s0">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
@@ -984,6 +1034,11 @@
   <parameter name="baseAddress" value="0x0400" />
   <parameter name="defaultConnection" value="false" />
  </connection>
+ <connection
+   kind="clock"
+   version="18.1"
+   start="clk_0.clk"
+   end="button_irq_0.clk_i" />
  <connection
    kind="clock"
    version="18.1"
@@ -1033,6 +1088,11 @@
    version="18.1"
    start="clk_0.clk_reset"
    end="hmi.leds_reset" />
+ <connection
+   kind="reset"
+   version="18.1"
+   start="clk_0.clk_reset"
+   end="button_irq_0.rstn_i" />
  <connection
    kind="reset"
    version="18.1"
