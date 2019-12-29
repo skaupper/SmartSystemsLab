@@ -37,7 +37,7 @@ architecture rtl of button_irq is
   subtype timestamp_t is unsigned (cTimestampWidth-1 downto 0);
 
   type aRegSet is record
-    readdata  : std_ulogic_vector(avs_s0_readdata'range),
+    readdata  : std_ulogic_vector(avs_s0_readdata'range);
     timestamp : timestamp_t;
   end record;
 
@@ -57,7 +57,7 @@ begin -- architecture rtl
     gClkFrequency    => gClkFrequency,
     gStrobeFrequency => cMsFrequency)
   port map (
-    clk_i            => clk_i,
+    iClk             => clk_i,
     inResetAsync     => rst_i,
     oStrobe          => msTick);
 
@@ -76,11 +76,11 @@ begin -- architecture rtl
       if avs_s0_read = '1' then
         case (avs_s0_address) is
           when cAddrData =>
-              nxR.readdata(buton_i'range) <= button_i;
+              nxR.readdata(button_i'range) <= button_i;
           when cAddrTsLo =>
-              nxR.readdata <= std_ulogic_vector(timestamp(31 downto 0));
+              nxR.readdata <= std_ulogic_vector(reg.timestamp(31 downto 0));
           when cAddrTsUp =>
-              nxR.readdata <= std_ulogic_vector(timestamp(63 downto 32));
+              nxR.readdata <= std_ulogic_vector(reg.timestamp(63 downto 32));
           when others =>
               null;
         end case;
