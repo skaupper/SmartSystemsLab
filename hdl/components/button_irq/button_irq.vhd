@@ -1,10 +1,24 @@
+-------------------------------------------------------------------------------
+--! @file      button_irq.vhd
+--! @author    Michael Wurm <wurm.michael95@gmail.com>
+--! @copyright 2019 Michael Wurm
+--! @brief     Implementation of button_irq.
+-------------------------------------------------------------------------------
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+-- Avalon Bus Register Addresses
 -- 0 -> lower word of timestamp
 -- 1 -> higher word of timestamp
 -- 14 -> ISR (button state)
+
+--! @brief Entity declaration of button_irq
+--! @details
+--! Forwards the current button state as an "interrupt signal".
+--! The current button state can be read from a register.
+--! A millisecond timestamp is provided.
 
 entity button_irq is
    generic (
