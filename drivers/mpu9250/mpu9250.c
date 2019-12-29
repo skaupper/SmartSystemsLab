@@ -17,6 +17,7 @@
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/io.h>
+#include <linux/interrupt.h>
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
@@ -86,6 +87,7 @@ struct data
   polling_data_t polling_data;
   int mode; /* 0..polling, 1..buffer */
   int size;
+  int irq_nr;
   struct miscdevice misc;
 };
 
@@ -142,6 +144,12 @@ static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *
 static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *offp)
 {
   return 0;
+}
+
+static irqreturn_t irq_handler(int nr, void *data_ptr)
+{
+  pr_info("Interrupt occured\n");
+  return IRQ_NONE;
 }
 
 /*
@@ -221,11 +229,13 @@ static int dev_probe(struct platform_device *pdev)
   struct resource *io;
   int retval;
 
+  /* Allocate memory for private data */
   dev = devm_kzalloc(&pdev->dev, sizeof(*dev), GFP_KERNEL);
   if (dev == NULL)
     return -ENOMEM;
   platform_set_drvdata(pdev, dev);
 
+  /* Get resources */
   io = platform_get_resource(pdev, IORESOURCE_MEM, 0);
   dev->regs = devm_ioremap_resource(&pdev->dev, io);
   if (IS_ERR(dev->regs))
@@ -240,6 +250,16 @@ static int dev_probe(struct platform_device *pdev)
   if (retval)
   {
     dev_err(&pdev->dev, "Register misc device failed!\n");
+    return retval;
+  }
+
+  /* Get interrupt */
+  dev->irq_nr = platform_get_irq(pdev, 0);
+  retval = devm_request_irq(&pdev->dev, dev->irq_nr, &irq_handler,
+                            IRQF_SHARED, dev_name(&pdev->dev), dev);
+  if (retval != 0)
+  {
+    dev_err(&pdev->dev, "Request interrupt failed!\n");
     return retval;
   }
 
