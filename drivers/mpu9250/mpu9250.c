@@ -17,6 +17,7 @@
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/io.h>
+#include <linux/interrupt.h>
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
@@ -302,6 +303,12 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
   send_sig_info(SIGNAL_EVENT, &info, t);
 
   return IRQ_HANDLED;
+}
+
+static irqreturn_t irq_handler(int nr, void *data_ptr)
+{
+  pr_info("Interrupt occured\n");
+  return IRQ_NONE;
 }
 
 /*
