@@ -1,5 +1,13 @@
+##############
+#
+# This script must be called in this directory.
+# Call it like:
+#    vsim -do Comp.do -c
+#
+##############
 
-#----------------------------------*-tcl-*-
+eval onerror {quit -f}
+eval onbreak {quit -f}
 
 #-------------------------------------------
 proc myvcom {filename} {
@@ -10,7 +18,11 @@ proc myvcom {filename} {
     puts "## WARNING: File not found: ${filename}"
   }
 }
-
 #-------------------------------------------
+
 vlib work
+myvcom ../apds9301/Global-p.vhd
+myvcom ../apds9301/StrobeGen-ea.vhd
 myvcom button_irq.vhd
+
+eval quit -f
