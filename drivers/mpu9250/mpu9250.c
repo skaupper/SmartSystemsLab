@@ -307,7 +307,28 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
 
 static irqreturn_t irq_handler(int nr, void *data_ptr)
 {
+  struct data *dev = data_ptr;
+  uint32_t irqs;
   pr_info("Interrupt occured\n");
+
+  /* Determine which interrupt occured */
+  irqs = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
+
+  if (irqs == 0x1)
+  {
+    pr_info("Received Button[1] interrupt");
+    return IRQ_HANDLED;
+  }
+  else if (irqs == 0x2)
+  {
+    pr_info("Received Button[2] interrupt");
+    return IRQ_HANDLED;
+  }
+  else if (irqs == 0x3)
+  {
+    pr_info("Received Button[1] and Button[2] interrupt");
+    return IRQ_HANDLED;
+  }
   return IRQ_NONE;
 }
 
