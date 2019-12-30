@@ -12,6 +12,7 @@ drivers/**/.tmp_versions/
 
 user/**/*.o
 user/show_ip/show_ip
+user/streaming_sensors/streaming_sensors
 
 work/
 transcript
