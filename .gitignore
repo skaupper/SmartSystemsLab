@@ -21,5 +21,6 @@ transcript
 .qsys_edit/
 db/
 HPSPlatform/
+incremental_db/
 *.sopcinfo
 *.qdf
