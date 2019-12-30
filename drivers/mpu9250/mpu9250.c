@@ -482,7 +482,8 @@ static int dev_remove(struct platform_device *pdev)
 
 static const struct of_device_id dev_of_match[] = {
     {
-        .compatible = "wur,button_irq-1.0",
+        .compatible = "goe,mpu9250-1.0",
+        //        .compatible = "wur,button_irq-1.0",
     },
     {},
 };
