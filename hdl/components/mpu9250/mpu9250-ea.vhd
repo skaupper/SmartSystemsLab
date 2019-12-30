@@ -57,11 +57,25 @@ entity mpu9250 is
       sclk, mosi         : out std_logic;
       miso               : in  std_logic;
       ss_n               : out std_logic_vector(0 downto 0);
-      inMpuInt           : in  std_logic --       .writedata
+      inMpuInt           : in  std_logic; --       .writedata
+      oInt               : out std_logic
    );
 end entity mpu9250;
 
 architecture rtl of mpu9250 is
+
+   component buf
+      PORT
+      (
+      	clock     : IN STD_LOGIC  := '1';
+      	data      : IN STD_LOGIC_VECTOR (63 DOWNTO 0);
+      	rdaddress : IN STD_LOGIC_VECTOR (12 DOWNTO 0);
+      	wraddress : IN STD_LOGIC_VECTOR (12 DOWNTO 0);
+      	wren      : IN STD_LOGIC  := '0';
+      	q         : OUT STD_LOGIC_VECTOR (63 DOWNTO 0)
+      );
+   end component;
+
    constant cTimestampWidth : natural := 64;
    subtype aTimestamp is unsigned (cTimestampWidth-1 downto 0);
 
@@ -135,6 +149,11 @@ architecture rtl of mpu9250 is
    constant cAddrMagnetZ      : std_logic_vector(3 downto 0) := X"8";
    constant cAddrTsLo         : std_logic_vector(3 downto 0) := X"9";
    constant cAddrTsUp         : std_logic_vector(3 downto 0) := X"A";
+   constant cAddrCtrlAvail    : std_logic_vector(3 downto 0) := X"B";
+   constant cAddrIntEn        : std_logic_vector(3 downto 0) := X"C";
+   constant cAddrIntStatReg   : std_logic_vector(3 downto 0) := X"D";
+   constant cAddrBufSel       : std_logic_vector(3 downto 0) := X"E";
+   constant cAddrBufData      : std_logic_vector(3 downto 0) := X"F";
 
    type aMpuCmd is record
       read : std_ulogic;
@@ -509,7 +528,7 @@ begin
                nxR.lock     <= cInactivated;
 
             when others =>
-               null;
+               nxR.readdata <= X"DEADCE11";
          end case ;
       end if;
    end process; -- fsm
