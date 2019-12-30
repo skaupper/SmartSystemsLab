@@ -75,7 +75,7 @@ begin -- architecture rtl
     inResetAsync     => rst_i,
     oStrobe          => msTick);
 
-   comb : process(reg, avs_s0_read, avs_s0_address)
+   comb : process(reg, avs_s0_read, avs_s0_address, msTick, button_i)
    begin
       -- Defaults
       nxR          <= reg;

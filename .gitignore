@@ -24,3 +24,8 @@ HPSPlatform/
 incremental_db/
 *.sopcinfo
 *.qdf
+c5_pin_model_dump.txt
+*.tmp
+output_files/
+output/
+hps_isw_handoff/

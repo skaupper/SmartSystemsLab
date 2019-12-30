@@ -31,6 +31,9 @@ set_module_property REPORT_TO_TALKBACK false
 set_module_property ALLOW_GREYBOX_GENERATION false
 set_module_property REPORT_HIERARCHY false
 
+set_module_assignment embeddedsw.dts.group "gpio"
+set_module_assignment embeddedsw.dts.vendor "wur"
+set_module_assignment embeddedsw.dts.name "button_irq"
 
 #
 # file sets
