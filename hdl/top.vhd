@@ -116,6 +116,7 @@ END ENTITY;
 ARCHITECTURE MAIN OF top IS
     component HPSPlatform is
         port (
+            button_irq_0_button_i_conduit                : in    std_logic_vector(1 downto 0)  := (others => 'X'); -- conduit
             clk_clk                                      : in    std_logic                     := 'X';             -- clk
             hps_0_h2f_reset_reset_n                      : out   std_logic;                                        -- reset_n
             hps_0_f2h_cold_reset_req_reset_n             : in    std_logic                     := 'X';             -- reset_n
@@ -323,6 +324,7 @@ u0 : component HPSPlatform
             -- periph
 --            leds_external_connection_export  => LEDR,  -- led_external_connection.export
             switches_external_connection_export   => SW,   --  sw_external_connection.export
+            button_irq_0_button_i_conduit         => KEY(4 downto 3),
 
             seven_segment_conduit_end_export(6+7*0 downto  7*0)    => HEX0,
             seven_segment_conduit_end_export(6+7*1 downto  7*1)    => HEX1,
