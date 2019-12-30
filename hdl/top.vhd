@@ -324,7 +324,7 @@ u0 : component HPSPlatform
             -- periph
 --            leds_external_connection_export  => LEDR,  -- led_external_connection.export
             switches_external_connection_export   => SW,   --  sw_external_connection.export
-            button_irq_0_button_i_conduit         => KEY(4 downto 3),
+            button_irq_0_button_i_conduit         => KEY(3 downto 2),
 
             seven_segment_conduit_end_export(6+7*0 downto  7*0)    => HEX0,
             seven_segment_conduit_end_export(6+7*1 downto  7*1)    => HEX1,
