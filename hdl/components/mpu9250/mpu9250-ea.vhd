@@ -44,7 +44,9 @@ use work.Global.all;
 
 entity mpu9250 is
    generic (
-      gClkFrequency    : natural := 50E6);
+      gClkFrequency  : natural := 50E6;
+      gShockLevel    : natural := 10E6;
+      gPreShockCount : natural := 256);
    port ( 
       iClk               : in  std_logic                     := '0';             -- clock.clk 
       inRst              : in  std_logic                     := '0';             -- reset.reset 
@@ -57,34 +59,23 @@ entity mpu9250 is
       sclk, mosi         : out std_logic;
       miso               : in  std_logic;
       ss_n               : out std_logic_vector(0 downto 0);
-      inMpuInt           : in  std_logic; --       .writedata
-      oInt               : out std_logic
+      inMpuInt           : in  std_logic --       .writedata
    );
 end entity mpu9250;
 
 architecture rtl of mpu9250 is
 
-   component buf
-      PORT
-      (
-      	clock     : IN STD_LOGIC  := '1';
-      	data      : IN STD_LOGIC_VECTOR (63 DOWNTO 0);
-      	rdaddress : IN STD_LOGIC_VECTOR (12 DOWNTO 0);
-      	wraddress : IN STD_LOGIC_VECTOR (12 DOWNTO 0);
-      	wren      : IN STD_LOGIC  := '0';
-      	q         : OUT STD_LOGIC_VECTOR (63 DOWNTO 0)
-      );
-   end component;
-
    constant cTimestampWidth : natural := 64;
    subtype aTimestamp is unsigned (cTimestampWidth-1 downto 0);
 
    constant cMsFrequency : natural := 1E3;
-   
+
    constant cSensorCount : natural := 9;
    constant cSensorValueWidth : natural := 16;
    subtype aSensorValue is std_ulogic_vector (cSensorValueWidth-1 downto 0);
    type aSensorValues is array (0 to cSensorCount) of aSensorValue;
+
+   constant cShockLevel       : aSensorValue := std_ulogic_vector(to_unsigned(gShockLevel, cSensorValueWidth));
 
    -- MPU Reg Addresses
    constant cMpuSmplrtDiv     : std_ulogic_vector(7 downto 0) := X"19"; -- 0x00
@@ -227,7 +218,51 @@ architecture rtl of mpu9250 is
       timestamp => (others => '0'),
       data      => (others => (others => '0')));
 
-   type aMpu9250State is (Init, InitMpu, InitMag, WaitData, ReadData);
+   type aRamCtrl is record
+      rAddr : unsigned(12 downto 0);
+      wAddr : unsigned(12 downto 0);
+      write : std_ulogic;
+   end record;
+
+   constant cRamCtrlClear : aRamCtrl := (
+      rAddr => (others => '0'),
+      wAddr => (others => '0'),
+      write => cInactivated);
+
+   type aRamState is (Idle, WaitShock, RecShock);
+   type aRamWriteState is (Idle, IncAddr);
+   type aRamReadState is (X, Y, Z);
+
+   function RamStateToULogic (s : aRamState) return std_ulogic is
+   begin
+      if s = Idle then
+         return cInactivated;
+      else
+         return cActivated;
+      end if;
+   end function;
+
+   type aRamReg is record
+      state  : aRamState;
+      wState : aRamWriteState;
+      rState : aRamReadState;
+      intEn  : std_ulogic;
+      int    : std_ulogic;
+      avail  : std_ulogic;
+      ctrl   : aRamCtrl;
+   end record;
+
+   constant cRamRegClear : aRamReg := (
+      state  => Idle,
+      wState => Idle,
+      rState => X,
+      intEn  => cInactivated,
+      int    => cInactivated,
+      avail  => cInactivated,
+      ctrl   => cRamCtrlClear);
+
+   type aMpu9250State is (Init, InitMpu, InitMag, WaitData,
+                          ReadData);
 
    constant cSpiFreq   : integer := 1E6;
    constant cSpiClkDiv : integer := integer(real(gClkFrequency)/real(2*cSpiFreq));
@@ -273,6 +308,8 @@ architecture rtl of mpu9250 is
       valid     : std_ulogic;
       state     : aMpu9250State;
       spi       : aSpiReg;
+      ram       : aRamReg;
+      newData   : std_ulogic;
    end record;
 
    constant cRegSetClear : aRegSet := (
@@ -283,12 +320,16 @@ architecture rtl of mpu9250 is
       timestamp => (others => '0'),
       valid     => cInactivated,
       state     => Init,
-      spi       => cSpiRegClear);
+      spi       => cSpiRegClear,
+      ram       => cRamRegClear,
+      newData   => cInactivated);
 
-   signal spiOut : aSpiOut;
-   signal nMpuInt, nMpuIntSync : std_ulogic;
+   signal spiOut   : aSpiOut;
    signal msTick   : std_ulogic;
    signal reg, nxR : aRegSet;
+   signal ramWData : std_ulogic_vector(63 downto 0);
+   signal ramRData : std_logic_vector(63 downto 0);
+   signal nMpuInt, nMpuIntSync : std_ulogic;
 begin
 
    strobe : entity work.StrobeGen
@@ -321,12 +362,23 @@ begin
       busy    => spiOut.busy,
       rx_data => spiOut.rxdata);
 
+   ram_inst : entity work.ram port map (
+      clock	    => iClk,
+      data      => std_logic_vector(ramWData),
+      rdaddress => std_logic_vector(reg.ram.ctrl.rAddr),
+      wraddress => std_logic_vector(reg.ram.ctrl.wAddr),
+      wren      => reg.ram.ctrl.write,
+      q         => ramRData);
+
    fsm : process( reg, avs_s0_read, msTick, avs_s0_address, nMpuIntSync, spiOut )
+      variable vRAddr : unsigned(12 downto 0);
    begin
       nxR           <= reg;
       nxR.readdata  <= (others => '0');
       nxR.valid     <= cActivated;
+      nxR.newData   <= cInactivated;
       nxR.spi.input <= cSpiInClear;
+      nxR.ram.ctrl.write <= cInactivated;
 
       -- Timestamp logic
       if msTick = cActivated then
@@ -465,13 +517,13 @@ begin
                         nxR.shadowreg.data(reg.spi.idx)( 7 downto 0) <= std_ulogic_vector(spiOut.rxdata);
 
                         if reg.spi.idx = cMpuRead'high then
-                           nxR.state     <= WaitData;
+                           nxR.newData <= cActivated;
+                           nxR.state   <= WaitData;
                         else
                            nxR.spi.idx   <= reg.spi.idx + 1;
                            nxR.spi.state <= WriteAddr;
                         end if;
                      end if;
-
                   end if;
                when others =>
                   nxR.state <= Init;   --ERROR
@@ -480,7 +532,53 @@ begin
             nxR.state <= Init;
       end case;
 
-      -- Bus logic
+      case reg.ram.state is
+         when Idle =>
+            reg.ram.wState <= Idle;
+         when WaitShock =>
+            case reg.ram.wState is
+               when Idle =>
+                  if reg.newData = cActivated then
+                     nxR.ram.ctrl.write <= cActivated;
+                     nxR.ram.wState     <= IncAddr;
+                  end if;
+               when IncAddr =>
+                  nxR.ram.ctrl.wAddr <= reg.ram.ctrl.wAddr + 1;
+                  nxR.ram.wState     <= Idle;
+
+                  if reg.shadowReg.data(3) > cShockLevel OR
+                     reg.shadowReg.data(4) > cShockLevel OR
+                     reg.shadowReg.data(5) > cShockLevel then
+
+                     nxR.ram.state      <= RecShock;
+                     nxR.ram.ctrl.rAddr <= reg.ram.ctrl.wAddr - gPreShockCount;
+                  end if;
+               when others =>
+                  nxR.ram.state <= Idle;
+            end case;
+         when RecShock =>
+            case reg.ram.wState is
+               when Idle =>
+                  if reg.ram.ctrl.wAddr = reg.ram.ctrl.rAddr then
+                     nxR.ram.state  <= Idle;
+                     nxR.ram.int    <= cActivated;
+                     nxR.ram.avail  <= cActivated;
+                  elsif reg.newData = cActivated then
+                     nxR.ram.ctrl.write <= cActivated;
+                     nxR.ram.wState     <= IncAddr;
+                     nxR.ram.rState     <= X;
+                  end if;
+               when IncAddr =>
+                  nxR.ram.ctrl.wAddr <= reg.ram.ctrl.wAddr + 1;
+                  nxR.ram.wState     <= Idle;
+               when others =>
+                  nxR.ram.state <= Idle;
+            end case;
+         when others =>
+            nxR.ram.state <= Idle;
+      end case;
+
+      -- Bus logic - read
       if avs_s0_read = cActivated then
          case( avs_s0_address ) is
             when cAddrGyroX =>
@@ -527,9 +625,68 @@ begin
                nxR.readdata <= std_ulogic_vector(reg.reg.timestamp(63 downto 32));
                nxR.lock     <= cInactivated;
 
+            when cAddrCtrlAvail =>
+               nxR.readdata(0) <= RamStateToULogic(reg.ram.state);
+               nxR.readdata(0) <= reg.ram.avail;
+
+            when cAddrIntEn =>
+               nxR.readdata(0) <= reg.ram.intEn;
+
+            when cAddrIntStatReg =>
+               nxR.readdata(0) <= reg.ram.int;
+
+            when cAddrBufSel =>
+               null; -- Only one buffer available atm
+
+            when cAddrBufData =>
+               if reg.ram.avail = cActivated then
+                  case reg.ram.rState is
+                     when X =>
+                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData(15 downto  0));
+                        nxR.ram.rState <= Y;
+                     when Y =>
+                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData(31 downto 16));
+                        nxR.ram.rState <= Z;
+                     when Z =>
+                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData(47 downto 32));
+                        nxR.ram.rState <= X;
+                        vRAddr := reg.ram.ctrl.rAddr + 1;
+                        if vRAddr = reg.ram.ctrl.wAddr then
+                           nxR.ram.avail <= cInactivated;
+                        else
+                           nxR.ram.ctrl.rAddr <= vRAddr;
+                        end if;  
+                     when others =>
+                        null;
+                  end case;
+               else
+                  nxR.readdata <= X"DEADBEEF";  -- Invalid read
+               end if;
+
             when others =>
-               nxR.readdata <= X"DEADCE11";
+               nxR.readdata <= X"DEADCE11";  -- Invalid read
          end case ;
+      end if;
+
+      -- Bus logic - write
+      if avs_s0_write = cActivated then
+         case avs_s0_address is
+            when cAddrCtrlAvail =>
+               if avs_s0_writedata(0) = cActivated then
+                  nxR.ram.state <= WaitShock;
+               end if;
+            when cAddrIntEn =>
+               nxR.ram.intEn <= std_ulogic(avs_s0_writedata(0));
+            when cAddrIntStatReg =>
+               if avs_s0_writedata(0) = cActivated then
+                  nxR.ram.int   <= cInactivated;
+               end if;
+            when cAddrBufSel =>
+               null; -- Only one buffer available atm
+         
+            when others =>
+               null;
+         end case;
       end if;
    end process; -- fsm
 
@@ -552,6 +709,9 @@ begin
          nMpuIntSync <= nMpuInt;
       end if;
    end process ; -- regProc
+
+   ramWData <= X"0000" & reg.shadowReg.data(3) & reg.shadowReg.data(4) & reg.shadowReg.data(5);
+   irq_irq  <= reg.ram.intEn AND reg.ram.int;
 
    avs_s0_readdata <= std_logic_vector(reg.readdata);
 

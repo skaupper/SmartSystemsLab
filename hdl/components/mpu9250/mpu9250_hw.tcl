@@ -43,6 +43,7 @@ add_fileset_file mpu9250-ea.vhd VHDL PATH mpu9250-ea.vhd TOP_LEVEL_FILE
 add_fileset_file Global-p.vhd VHDL PATH Global-p.vhd
 add_fileset_file StrobeGen-ea.vhd VHDL PATH StrobeGen-ea.vhd
 add_fileset_file spi_master.vhd VHDL PATH spi_master.vhd
+add_fileset_file ram.vhd VHDL PATH ram/ram.vhd
 
 
 # 
@@ -56,6 +57,18 @@ set_parameter_property gClkFrequency UNITS None
 set_parameter_property gClkFrequency ALLOWED_RANGES 0:2147483647
 set_parameter_property gClkFrequency DESCRIPTION ""
 set_parameter_property gClkFrequency HDL_PARAMETER true
+add_parameter gShockLevel NATURAL 10000000
+set_parameter_property gShockLevel DEFAULT_VALUE 10000000
+set_parameter_property gShockLevel DISPLAY_NAME gShockLevel
+set_parameter_property gShockLevel TYPE NATURAL
+set_parameter_property gShockLevel UNITS None
+set_parameter_property gShockLevel HDL_PARAMETER true
+add_parameter gPreShockCount NATURAL 256
+set_parameter_property gPreShockCount DEFAULT_VALUE 256
+set_parameter_property gPreShockCount DISPLAY_NAME gPreShockCount
+set_parameter_property gPreShockCount TYPE NATURAL
+set_parameter_property gPreShockCount UNITS None
+set_parameter_property gPreShockCount HDL_PARAMETER true
 
 
 # 

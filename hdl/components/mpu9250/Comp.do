@@ -17,5 +17,6 @@ vlib work
 myvcom Global-p.vhd
 myvcom StrobeGen-ea.vhd
 myvcom spi_master.vhd
+myvcom ram/ram.vhd
 myvcom mpu9250-ea.vhd
 myvcom tbMpu9250-ea.vhd
