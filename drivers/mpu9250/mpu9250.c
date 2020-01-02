@@ -143,7 +143,35 @@ static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *
 
 static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *offp)
 {
-  return 0;
+  int i;
+
+  /* check out of bound access */
+  if ((*offp < 0) || (*offp >= SIZEOF_BUFFER_DATA_T))
+    return 0;
+
+  /* limit number of readable bytes to maximum which is still possible */
+  if ((*offp + count) > SIZEOF_BUFFER_DATA_T)
+    count = SIZEOF_BUFFER_DATA_T - *offp;
+
+  /* Fill structure with dummy data */
+  for (i = 0; i < 1024; i++)
+  {
+    dev->buffer_data.buf_acc_x[i] = 0x1000 | i;
+    dev->buffer_data.buf_acc_y[i] = 0x2000 | i;
+    dev->buffer_data.buf_acc_y[i] = 0x3000 | i;
+
+    dev->buffer_data.buf_gyro_x[i] = 0x4000 | i;
+    dev->buffer_data.buf_gyro_y[i] = 0x5000 | i;
+    dev->buffer_data.buf_gyro_y[i] = 0x6000 | i;
+  }
+
+  /* copy data from kernel space buffer into user space */
+  if (count > 0)
+    count = count - copy_to_user(buf, (char *)&dev->buffer_data + *offp, count);
+
+  *offp += count;
+
+  return count;
 }
 
 static irqreturn_t irq_handler(int nr, void *data_ptr)
