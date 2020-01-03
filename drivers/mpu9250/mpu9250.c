@@ -324,6 +324,10 @@ static int dev_remove(struct platform_device *pdev)
 {
   struct data *dev = platform_get_drvdata(pdev);
 
+  /* Reset interrupt generation in FPGA device */
+  //iowrite32(0x0, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
+  devm_free_irq(&pdev->dev, dev->irq_nr, dev);
+
   misc_deregister(&dev->misc);
   platform_set_drvdata(pdev, NULL);
 
@@ -333,7 +337,6 @@ static int dev_remove(struct platform_device *pdev)
 static const struct of_device_id dev_of_match[] = {
     {
         .compatible = "goe,mpu9250-1.0",
-        //        .compatible = "wur,button_irq-1.0",
     },
     {},
 };
