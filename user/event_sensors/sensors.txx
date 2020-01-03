@@ -8,20 +8,12 @@ std::vector<T> StreamingSensor<T>::getQueue() {
 }
 
 template<class T>
-bool StreamingSensor<T>::hasEventHappened() {
-    std::lock_guard lck(eventMutex);
-
-    auto result   = eventHappened;
-    eventHappened = false;
-    return result;
-}
-
-template<class T>
 std::vector<T> StreamingSensor<T>::getEventQueue() {
     std::lock_guard lck(eventMutex);
 
     auto result = std::move(eventQueue);
     eventQueue.clear();
+    eventHappened = false;
     return result;
 }
 

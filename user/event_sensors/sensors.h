@@ -18,7 +18,6 @@ public:
     virtual std::string getTopic() const = 0;
     std::vector<T> getQueue();
 
-    bool hasEventHappened();
     std::vector<T> getEventQueue();
     void setEventQueue(std::vector<T> &&newEventQueue);
 
