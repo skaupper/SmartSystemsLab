@@ -82,7 +82,7 @@ int main() {
 
     HDC1000 hdc1000(50);
     // TODO: the MQTT lib has some problems with sending this much data, whats the cause for this?
-    MPU9250 mpu9250(1000);
+    MPU9250 mpu9250(2);
     APDS9301 apds9301(2.5);
 
     // start a thread for each sensor
