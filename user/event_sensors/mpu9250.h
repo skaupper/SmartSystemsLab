@@ -8,6 +8,7 @@ struct MPU9250Data : public Serializable {
     std::string toJsonString() const override;
 
     uint64_t timeStamp;
+    bool event;
     std::optional<double> gyro_x;
     std::optional<double> gyro_y;
     std::optional<double> gyro_z;

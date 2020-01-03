@@ -9,6 +9,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <iomanip>
+
 #include "fpga.h"
 #include "mpu9250_conversion.txx"
 #include "tsu.h"
@@ -118,6 +120,11 @@ static void eventDataReady(int, siginfo_t *, void *) {
             tmp.gyro_y = pod.gyro_y[i];
             tmp.gyro_z = pod.gyro_z[i];
 
+            // std::cout << "Acc : x: " << std::hex << tmp.acc_x << ", y: " << std::hex << tmp.acc_y << ", z: " << std::hex << tmp.acc_z << std::endl;
+            // std::cout << "Gyro: x: " << std::hex << tmp.gyro_x << ", y: " << std::hex << tmp.gyro_y << ", z: " << std::hex << tmp.gyro_z << std::endl;
+            // std::cout << std::endl;
+
+            data.event = true;
             convertAccUnits(tmp, data);
             convertGyroUnits(tmp, data);
 
@@ -186,6 +193,7 @@ std::optional<MPU9250Data> MPU9250::doPoll() {
 
 
     results.timeStamp = (((uint64_t) pod.timestamp_hi) << 32) | pod.timestamp_lo;
+    results.event = false;
     convertAccUnits(pod, results);
     convertMagUnits(pod, results);
     convertGyroUnits(pod, results);
@@ -210,6 +218,7 @@ std::string MPU9250Data::toJsonString() const {
     ADD_FIELD_IF_AVAILABLE(ss, mag_y);
     ADD_FIELD_IF_AVAILABLE(ss, mag_z);
 
+    ss << "\"event\":" << event << ",";
     ss << "\"timestamp\":" << TimeStampingUnit::getResolvedTimeStamp(timeStamp);
     ss << "}";
     return ss.str();
