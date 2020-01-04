@@ -30,7 +30,7 @@
 #define NUM_BYTE_SHOCK_DATA (1024 * 2 * 3 * sizeof(uint16_t))
 
 #define SIZEOF_POLLING_DATA_T (NUM_BYTE_SENSOR_DATA + NUM_BYTE_TIMESTAMP)
-#define SIZEOF_BUFFER_DATA_T (NUM_BYTE_SHOCK_DATA)
+#define SIZEOF_BUFFER_DATA_T (NUM_BYTE_SHOCK_DATA + NUM_BYTE_TIMESTAMP)
 
 #define MEM_OFFSET_DATA_GYRO_X (0x0)
 #define MEM_OFFSET_DATA_GYRO_Y (0x4)
@@ -72,6 +72,8 @@ typedef struct
 
 typedef struct
 {
+  uint32_t timestamp_lo;
+  uint32_t timestamp_hi;
   uint16_t buf_acc_x[1024];
   uint16_t buf_acc_y[1024];
   uint16_t buf_acc_z[1024];
@@ -156,13 +158,16 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
   /* Fill structure with dummy data */
   for (i = 0; i < 1024; i++)
   {
+    dev->buffer_data.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
+    dev->buffer_data.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
+
     dev->buffer_data.buf_acc_x[i] = 0x1000 | i;
     dev->buffer_data.buf_acc_y[i] = 0x2000 | i;
-    dev->buffer_data.buf_acc_y[i] = 0x3000 | i;
+    dev->buffer_data.buf_acc_z[i] = 0x3000 | i;
 
     dev->buffer_data.buf_gyro_x[i] = 0x4000 | i;
     dev->buffer_data.buf_gyro_y[i] = 0x5000 | i;
-    dev->buffer_data.buf_gyro_y[i] = 0x6000 | i;
+    dev->buffer_data.buf_gyro_z[i] = 0x6000 | i;
   }
 
   /* copy data from kernel space buffer into user space */
