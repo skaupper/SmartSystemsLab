@@ -35,7 +35,7 @@ use work.Global.all;
 --     - 0 -> Buf0 Interrupt enable
 --     - 1 -> Buf1 Interrupt enable
 --     - ...
--- - D -> ISR (Interrupt status register)
+-- - D -> ISR (Interrupt status register, write '1' to clear Interrupt)
 --     - 0 -> Buf0 Interrupt
 --     - 1 -> Buf1 Interrupt
 --     - ...
@@ -73,7 +73,7 @@ architecture rtl of mpu9250 is
    constant cSensorCount : natural := 9;
    constant cSensorValueWidth : natural := 16;
    subtype aSensorValue is std_ulogic_vector (cSensorValueWidth-1 downto 0);
-   type aSensorValues is array (0 to cSensorCount) of aSensorValue;
+   type aSensorValues is array (0 to cSensorCount-1) of aSensorValue;
 
    constant cShockLevel       : aSensorValue := std_ulogic_vector(to_unsigned(gShockLevel, cSensorValueWidth));
 
@@ -534,7 +534,7 @@ begin
 
       case reg.ram.state is
          when Idle =>
-            reg.ram.wState <= Idle;
+            nxR.ram.wState <= Idle;
          when WaitShock =>
             case reg.ram.wState is
                when Idle =>
