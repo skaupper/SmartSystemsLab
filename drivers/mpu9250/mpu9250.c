@@ -68,6 +68,7 @@
 #define IOC_MODE_BUFFER 1
 #define IOC_CMD_SET_READ_POLLING _IO(4711, IOC_MODE_POLLING)
 #define IOC_CMD_SET_READ_BUFFER _IO(4711, IOC_MODE_BUFFER)
+#define IOC_CMD_SET_PID _IO(4711, IOC_SET_PID)
 
 typedef struct
 {
@@ -309,7 +310,6 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
 {
   struct data *dev = data_ptr;
   uint32_t irqs;
-  uint32_t current_pid;
   struct siginfo info;
   struct task_struct *t;
 
@@ -336,12 +336,12 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
   }
 
   /* Send signal to user space */
-  current_pid = task_pid_nr(current);
-  pr_info("Current PID: %i", current_pid);
-
-  t = pid_task(find_vpid(current_pid), PIDTYPE_PID);
+  t = pid_task(find_vpid(dev->pid), PIDTYPE_PID);
   if (t == NULL)
-    return IRQ_HANDLED; // or IRQ_NONE ?
+  {
+    printk(KERN_ERR "A Task with PID %i does not exist.\n", dev->pid);
+    return IRQ_HANDLED;
+  }
 
   memset(&info, 0, sizeof(struct siginfo));
   info.si_signo = SIGNAL_EVENT;
