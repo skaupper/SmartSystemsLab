@@ -627,7 +627,7 @@ begin
 
             when cAddrCtrlAvail =>
                nxR.readdata(0) <= RamStateToULogic(reg.ram.state);
-               nxR.readdata(0) <= reg.ram.avail;
+               nxR.readdata(1) <= reg.ram.avail;
 
             when cAddrIntEn =>
                nxR.readdata(0) <= reg.ram.intEn;
