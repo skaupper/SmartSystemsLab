@@ -316,23 +316,19 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
   pr_info("Interrupt occured\n");
 
   /* Determine which interrupt occured */
-  //irqs = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
-  irqs = 0;
+  irqs = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
 
   if (irqs == 0x1)
   {
-    pr_info("Received Button[1] interrupt");
-    return IRQ_HANDLED;
+    pr_info("Received Buffer 1 interrupt");
   }
   else if (irqs == 0x2)
   {
-    pr_info("Received Button[2] interrupt");
-    return IRQ_HANDLED;
+    pr_info("Received Buffer 2 interrupt");
   }
   else if (irqs == 0x3)
   {
-    pr_info("Received Button[1] and Button[2] interrupt");
-    return IRQ_HANDLED;
+    printk(KERN_ERR "Received Buffer 1 and Buffer 2 interrupt\n");
   }
 
   /* Send signal to user space */
@@ -348,7 +344,6 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
   info.si_code = SI_QUEUE;
   info.si_int = 4711;
 
-  /* Tell userspace that IRQ occured */
   send_sig_info(SIGNAL_EVENT, &info, t);
 
   return IRQ_HANDLED;
