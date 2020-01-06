@@ -219,8 +219,8 @@ architecture rtl of mpu9250 is
       data      => (others => (others => '0')));
 
    type aRamCtrl is record
-      rAddr : unsigned(12 downto 0);
-      wAddr : unsigned(12 downto 0);
+      rAddr : unsigned(9 downto 0);
+      wAddr : unsigned(9 downto 0);
       write : std_ulogic;
    end record;
 
@@ -231,7 +231,7 @@ architecture rtl of mpu9250 is
 
    type aRamState is (Idle, WaitShock, RecShock);
    type aRamWriteState is (Idle, IncAddr);
-   type aRamReadState is (X, Y, Z);
+   type aRamReadState is (X, Y, Z, TimeL, TimeH);
 
    function RamStateToULogic (s : aRamState) return std_ulogic is
    begin
@@ -327,8 +327,8 @@ architecture rtl of mpu9250 is
    signal spiOut   : aSpiOut;
    signal msTick   : std_ulogic;
    signal reg, nxR : aRegSet;
-   signal ramWData : std_ulogic_vector(63 downto 0);
-   signal ramRData : std_logic_vector(63 downto 0);
+   signal ramWData : std_ulogic_vector(127 downto 0);
+   signal ramRData : std_logic_vector(127 downto 0);
    signal nMpuInt, nMpuIntSync : std_ulogic;
 begin
 
@@ -371,7 +371,7 @@ begin
       q         => ramRData);
 
    fsm : process( reg, avs_s0_read, msTick, avs_s0_address, nMpuIntSync, spiOut )
-      variable vRAddr : unsigned(12 downto 0);
+      variable vRAddr : unsigned(9 downto 0);
    begin
       nxR           <= reg;
       nxR.readdata  <= (others => '0');
@@ -649,6 +649,12 @@ begin
                         nxR.ram.rState <= Z;
                      when Z =>
                         nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData(47 downto 32));
+                        nxR.ram.rState <= TimeL;
+                     when TimeL =>
+                        nxR.readdata <= std_ulogic_vector(ramRData(95 downto 64));
+                        nxR.ram.rState <= TimeH;
+                     when TimeH =>
+                        nxR.readdata <= std_ulogic_vector(ramRData(127 downto 96));
                         nxR.ram.rState <= X;
                         vRAddr := reg.ram.ctrl.rAddr + 1;
                         if vRAddr = reg.ram.ctrl.wAddr then
@@ -710,7 +716,7 @@ begin
       end if;
    end process ; -- regProc
 
-   ramWData <= X"0000" & reg.shadowReg.data(3) & reg.shadowReg.data(4) & reg.shadowReg.data(5);
+   ramWData <= std_ulogic_vector(reg.shadowReg.timestamp) & X"0000" & reg.shadowReg.data(3) & reg.shadowReg.data(4) & reg.shadowReg.data(5);
    irq_irq  <= reg.ram.intEn AND reg.ram.int;
 
    avs_s0_readdata <= std_logic_vector(reg.readdata);
