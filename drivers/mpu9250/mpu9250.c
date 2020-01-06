@@ -96,6 +96,7 @@ struct data
   int pid;
   int size;
   int irq_nr;
+  int irqs;
   struct miscdevice misc;
 };
 
@@ -152,7 +153,6 @@ static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *
 static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *offp)
 {
   int i;
-  int irqs;
   int buf_data_available;
 
   /* check out of bound access */
@@ -163,45 +163,51 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
   if ((*offp + count) > SIZEOF_BUFFER_DATA_T)
     count = SIZEOF_BUFFER_DATA_T - *offp;
 
-  /* Determine which interrupt occured */
-  irqs = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
-
-  /* Get buffers that hold data ready */
+  /* Check for buffers that are ready */
   buf_data_available = ioread32(dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
 
-  if (irqs == 0x1)
+  if (dev->irqs == 0x1)
   {
     if (buf_data_available == 0x2)
+    {
       pr_info("read_buffer_data: Reading buffer 1 data");
+      /* Select buffer 1 */
+      iowrite32(0x0, dev->regs + MEM_OFFSET_BUF_SELECT);
+
+      /* Read data */
+      dev->buffer_data.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
+      dev->buffer_data.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
+
+      /* Read data from single address (FPGA returns acc_X, acc_Y, acc_Z, acc_X, ...) */
+      for (i = 0; i < 1024; i++)
+      {
+        dev->buffer_data.buf_acc_x[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
+        dev->buffer_data.buf_acc_y[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
+        dev->buffer_data.buf_acc_z[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
+
+        /* Dummy data for gyro values */
+        dev->buffer_data.buf_gyro_x[i] = 0x4000 | i;
+        dev->buffer_data.buf_gyro_y[i] = 0x5000 | i;
+        dev->buffer_data.buf_gyro_z[i] = 0x6000 | i;
+      }
+    }
     else
       printk(KERN_ERR "read_buffer_data: Interrupt 1 occured, but buffer 1 is not ready.\n");
   }
-  else if (irqs == 0x2)
+  else if (dev->irqs == 0x2)
   {
     if (buf_data_available == 0x8)
-      pr_info("read_buffer_data: Reading buffer 2 data");
+      pr_info("read_buffer_data: Reading buffer 2 data (not implemented yet)");
     else
       printk(KERN_ERR "read_buffer_data: Interrupt 2 occured, but buffer 2 is not ready.\n");
   }
-  else if (irqs == 0x3)
+  else if (dev->irqs == 0x3)
   {
     printk(KERN_ERR "read_buffer_data: Received buffer 1 and Buffer 2 interrupt\n");
   }
 
-  /* Fill structure with dummy data */
-  for (i = 0; i < 1024; i++)
-  {
-    dev->buffer_data.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
-    dev->buffer_data.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
-
-    dev->buffer_data.buf_acc_x[i] = 0x1000 | i;
-    dev->buffer_data.buf_acc_y[i] = 0x2000 | i;
-    dev->buffer_data.buf_acc_z[i] = 0x3000 | i;
-
-    dev->buffer_data.buf_gyro_x[i] = 0x4000 | i;
-    dev->buffer_data.buf_gyro_y[i] = 0x5000 | i;
-    dev->buffer_data.buf_gyro_z[i] = 0x6000 | i;
-  }
+  /* Interrupts were handled. */
+  dev->irqs = 0;
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
@@ -215,27 +221,34 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
 static irqreturn_t irq_handler(int nr, void *data_ptr)
 {
   struct data *dev = data_ptr;
-  uint32_t irqs;
   struct siginfo info;
   struct task_struct *t;
 
   pr_info("Interrupt occured\n");
 
   /* Determine which interrupt occured */
-  irqs = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
+  dev->irqs = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
 
-  if (irqs == 0x1)
+  if (dev->irqs == 0x1)
   {
     pr_info("Received Buffer 1 interrupt");
   }
-  else if (irqs == 0x2)
+  else if (dev->irqs == 0x2)
   {
     pr_info("Received Buffer 2 interrupt");
   }
-  else if (irqs == 0x3)
+  else if (dev->irqs == 0x3)
   {
     printk(KERN_ERR "Received Buffer 1 and Buffer 2 interrupt\n");
   }
+  else
+  {
+    /* Another device asserted the shared interrupt line */
+    return IRQ_NONE;
+  }
+
+  /* Reset interrupts (Write '1' to clear) */
+  iowrite32(dev->irqs, dev->regs + MEM_OFFSET_BUF_ISR);
 
   /* Send signal to user space */
   t = pid_task(find_vpid(dev->pid), PIDTYPE_PID);
