@@ -159,6 +159,8 @@ static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *
 static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *offp)
 {
   int i;
+  int irqs;
+  int buf_data_available;
 
   /* Read data, depending on current mode */
   switch (dev->mode)
@@ -343,6 +345,9 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
   info.si_signo = SIGNAL_EVENT;
   info.si_code = SI_QUEUE;
   info.si_int = 4711;
+
+  /* Enable buffer 0 again (it's cleared internally on every interrupt) */
+  iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
 
   send_sig_info(SIGNAL_EVENT, &info, t);
 
