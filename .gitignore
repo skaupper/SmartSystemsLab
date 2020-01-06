@@ -1,5 +1,6 @@
 .vscode/
 
+# Makefile compilation temporary files
 drivers/**/*.o
 drivers/**/*.d
 drivers/**/*.cmd
@@ -14,11 +15,13 @@ user/**/*.o
 user/show_ip/show_ip
 user/streaming_sensors/streaming_sensors
 
+# ModelSim temporary files
 work/
 transcript
 *.wlf
 *~
 
+# Quartus temporary files
 .qsys_edit/
 db/
 HPSPlatform/
