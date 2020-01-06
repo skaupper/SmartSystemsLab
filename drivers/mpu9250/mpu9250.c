@@ -152,6 +152,8 @@ static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *
 static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *offp)
 {
   int i;
+  int irqs;
+  int buf_data_available;
 
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= SIZEOF_BUFFER_DATA_T))
@@ -160,6 +162,31 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
   /* limit number of readable bytes to maximum which is still possible */
   if ((*offp + count) > SIZEOF_BUFFER_DATA_T)
     count = SIZEOF_BUFFER_DATA_T - *offp;
+
+  /* Determine which interrupt occured */
+  irqs = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
+
+  /* Get buffers that hold data ready */
+  buf_data_available = ioread32(dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
+
+  if (irqs == 0x1)
+  {
+    if (buf_data_available == 0x2)
+      pr_info("read_buffer_data: Reading buffer 1 data");
+    else
+      printk(KERN_ERR "read_buffer_data: Interrupt 1 occured, but buffer 1 is not ready.\n");
+  }
+  else if (irqs == 0x2)
+  {
+    if (buf_data_available == 0x8)
+      pr_info("read_buffer_data: Reading buffer 2 data");
+    else
+      printk(KERN_ERR "read_buffer_data: Interrupt 2 occured, but buffer 2 is not ready.\n");
+  }
+  else if (irqs == 0x3)
+  {
+    printk(KERN_ERR "read_buffer_data: Received buffer 1 and Buffer 2 interrupt\n");
+  }
 
   /* Fill structure with dummy data */
   for (i = 0; i < 1024; i++)
@@ -222,6 +249,9 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
   info.si_signo = SIGNAL_EVENT;
   info.si_code = SI_QUEUE;
   info.si_int = 4711;
+
+  /* Enable buffer 0 again (it's cleared internally on every interrupt) */
+  iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
 
   send_sig_info(SIGNAL_EVENT, &info, t);
 
@@ -350,6 +380,8 @@ static int dev_probe(struct platform_device *pdev)
 
   /* Enable interrupt generation in FPGA device */
   iowrite32(0x3, dev->regs + MEM_OFFSET_BUF_IEN);
+  /* Enable buffer 0 */
+  iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
 
   dev_info(&pdev->dev, "MPU9250 Gyroscope/Accelerometer/Magnetometer Sensor driver loaded!");
 
