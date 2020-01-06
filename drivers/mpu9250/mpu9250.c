@@ -159,7 +159,6 @@ static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *
 static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *offp)
 {
   int i;
-  int irqs;
   int buf_data_available;
 
   /* Read data, depending on current mode */
@@ -311,27 +310,34 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
 static irqreturn_t irq_handler(int nr, void *data_ptr)
 {
   struct data *dev = data_ptr;
-  uint32_t irqs;
   struct siginfo info;
   struct task_struct *t;
 
   pr_info("Interrupt occured\n");
 
   /* Determine which interrupt occured */
-  irqs = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
+  dev->irqs = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
 
-  if (irqs == 0x1)
+  if (dev->irqs == 0x1)
   {
     pr_info("Received Buffer 1 interrupt");
   }
-  else if (irqs == 0x2)
+  else if (dev->irqs == 0x2)
   {
     pr_info("Received Buffer 2 interrupt");
   }
-  else if (irqs == 0x3)
+  else if (dev->irqs == 0x3)
   {
     printk(KERN_ERR "Received Buffer 1 and Buffer 2 interrupt\n");
   }
+  else
+  {
+    /* Another device asserted the shared interrupt line */
+    return IRQ_NONE;
+  }
+
+  /* Reset interrupts (Write '1' to clear) */
+  iowrite32(dev->irqs, dev->regs + MEM_OFFSET_BUF_ISR);
 
   /* Send signal to user space */
   t = pid_task(find_vpid(dev->pid), PIDTYPE_PID);
