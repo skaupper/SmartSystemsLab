@@ -193,16 +193,9 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
     else
       printk(KERN_ERR "read_buffer_data: Interrupt 0 occured, but buffer 0 is not ready.\n");
   }
-  else if (dev->irqs == 0x2)
+  else
   {
-    if (buf_data_available == 0x8)
-      pr_info("read_buffer_data: Reading buffer 1 data (not implemented yet)");
-    else
-      printk(KERN_ERR "read_buffer_data: Interrupt 1 occured, but buffer 1 is not ready.\n");
-  }
-  else if (dev->irqs == 0x3)
-  {
-    printk(KERN_ERR "read_buffer_data: Received buffer 0 and buffer 1 interrupt\n");
+    printk(KERN_ERR "read_buffer_data: Unexpected interrupt %02x\n", dev->irqs);
   }
 
   /* Interrupts were handled. */
@@ -233,15 +226,7 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
 
   if (dev->irqs == 0x1)
   {
-    pr_info("Received Buffer 1 interrupt");
-  }
-  else if (dev->irqs == 0x2)
-  {
-    pr_info("Received Buffer 2 interrupt");
-  }
-  else if (dev->irqs == 0x3)
-  {
-    printk(KERN_ERR "Received Buffer 1 and Buffer 2 interrupt\n");
+    pr_info("Received buffer 0 interrupt");
   }
   else
   {
@@ -315,6 +300,7 @@ static long dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 {
   struct data *dev = container_of(filep->private_data, struct data, misc);
   uint32_t threshold;
+  uint32_t tmp;
 
   switch (cmd)
   {
@@ -333,17 +319,15 @@ static long dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
     pr_info("dev_ioctl: Set current PID to %i.\n", dev->pid);
     break;
   case IOC_CMD_SET_THRESHOLD:
-    copy_from_user(&threshold, (uint32_t *)arg, sizeof(threshold));
-    pr_info("dev_read: Set acceleration threshold for shock detection to %i.\n", threshold);
+    tmp = copy_from_user(&threshold, (uint32_t *)arg, sizeof(threshold));
+    pr_info("dev_ioctl: Set acceleration threshold for shock detection to %i.\n", threshold);
     iowrite32(threshold, dev->regs + MEM_OFFSET_SHOCK_THRESHOLD);
     break;
   default:
     /* it seems like ioctl is also called for all invocations of fread with cmd 0x5041 (TCGETS) */
     // pr_info("dev_ioctl: Unknown cmd (%u). Exit.\n", cmd);
-    return 0;
+    break;
   }
-
-  pr_info("dev_ioctl: Successful exit.\n");
   return 0;
 }
 
