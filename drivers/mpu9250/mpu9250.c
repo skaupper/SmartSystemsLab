@@ -49,16 +49,18 @@
 #define MEM_OFFSET_BUF_CTRL_STATUS (0X2C)
 #define MEM_OFFSET_BUF_IEN (0X30)
 #define MEM_OFFSET_BUF_ISR (0X34)
-#define MEM_OFFSET_BUF_SELECT (0X38)
+#define MEM_OFFSET_SHOCK_THRESHOLD (0X38)
 #define MEM_OFFSET_BUF_DATA (0X3C)
 
 /* IO Control (IOCTL) */
 #define IOC_MODE_POLLING 0
 #define IOC_MODE_BUFFER 1
 #define IOC_SET_PID 2
+#define IOC_SET_THRESHOLD 3
 #define IOC_CMD_SET_READ_POLLING _IO(4711, IOC_MODE_POLLING)
 #define IOC_CMD_SET_READ_BUFFER _IO(4711, IOC_MODE_BUFFER)
 #define IOC_CMD_SET_PID _IO(4711, IOC_SET_PID)
+#define IOC_CMD_SET_THRESHOLD _IO(4711, IOC_SET_THRESHOLD)
 
 typedef struct
 {
@@ -171,15 +173,13 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
     if (buf_data_available == 0x2)
     {
       pr_info("read_buffer_data: Reading buffer 0 data");
-      /* Select buffer 0 */
-      iowrite32(0x0, dev->regs + MEM_OFFSET_BUF_SELECT);
 
-      /* Read data from single address (FPGA returns acc_X, acc_Y, acc_Z, acc_X, ...) */
+      /* Read data from single address (FPGA returns acc_X, acc_Y, acc_Z, timestamp_lo, timestamp_hi, acc_X, ...) */
       for (i = 0; i < 1024; i++)
       {
-        dev->buffer_data.buf_acc_x[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
-        dev->buffer_data.buf_acc_y[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
-        dev->buffer_data.buf_acc_z[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
+        dev->buffer_data.buf_acc_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+        dev->buffer_data.buf_acc_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+        dev->buffer_data.buf_acc_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
 
         dev->buffer_data.timestamp_lo[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
         dev->buffer_data.timestamp_hi[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
@@ -313,8 +313,8 @@ static int dev_read(struct file *filep, char *buf, size_t count,
  */
 static long dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 {
-  struct data *dev = container_of(filep->private_data,
-                                  struct data, misc);
+  struct data *dev = container_of(filep->private_data, struct data, misc);
+  uint32_t threshold;
 
   switch (cmd)
   {
@@ -328,12 +328,14 @@ static long dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
     break;
   case IOC_CMD_SET_PID:
     /* Get the PID of the currently executing process.
-     * The `current` variable is defined in linux/sched/signal.h
-     *
-     * NOTE: If this approach doesn't work, we should take the PID as an
-     *       argument to this call from the user space. */
+     * The `current` variable is defined in linux/sched/signal.h */
     dev->pid = task_pid_nr(current);
     pr_info("dev_ioctl: Set current PID to %i.\n", dev->pid);
+    break;
+  case IOC_CMD_SET_THRESHOLD:
+    copy_from_user(&threshold, (uint32_t *)arg, sizeof(threshold));
+    pr_info("dev_read: Set acceleration threshold for shock detection to %i.\n", threshold);
+    iowrite32(threshold, dev->regs + MEM_OFFSET_SHOCK_THRESHOLD);
     break;
   default:
     /* it seems like ioctl is also called for all invocations of fread with cmd 0x5041 (TCGETS) */
