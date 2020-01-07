@@ -246,6 +246,7 @@ architecture rtl of mpu9250 is
       state  : aRamState;
       wState : aRamWriteState;
       rState : aRamReadState;
+      rInc   : std_ulogic;
       intEn  : std_ulogic;
       int    : std_ulogic;
       avail  : std_ulogic;
@@ -256,6 +257,7 @@ architecture rtl of mpu9250 is
       state  => Idle,
       wState => Idle,
       rState => X,
+      rInc   => cActivated,
       intEn  => cInactivated,
       int    => cInactivated,
       avail  => cInactivated,
@@ -379,6 +381,7 @@ begin
       nxR.newData   <= cInactivated;
       nxR.spi.input <= cSpiInClear;
       nxR.ram.ctrl.write <= cInactivated;
+      nxR.ram.rInc  <= cActivated;
 
       -- Timestamp logic
       if msTick = cActivated then
@@ -639,7 +642,8 @@ begin
                null; -- Only one buffer available atm
 
             when cAddrBufData =>
-               if reg.ram.avail = cActivated then
+               if reg.ram.avail = cActivated AND reg.ram.rInc = cActivated then
+                  nxR.ram.rInc <= cInactivated;
                   case reg.ram.rState is
                      when X =>
                         nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData(15 downto  0));
