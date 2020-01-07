@@ -720,7 +720,10 @@ begin
       end if;
    end process ; -- regProc
 
-   ramWData <= std_ulogic_vector(reg.shadowReg.timestamp) & X"0000" & reg.shadowReg.data(3) & reg.shadowReg.data(4) & reg.shadowReg.data(5);
+   ramWData(127 downto 64) <= std_ulogic_vector(reg.shadowReg.timestamp);
+   ramWData( 47 downto 32) <= reg.shadowReg.data(5);
+   ramWData( 31 downto 16) <= reg.shadowReg.data(4);
+   ramWData( 15 downto  0) <= reg.shadowReg.data(3);
    irq_irq  <= reg.ram.intEn AND reg.ram.int;
 
    avs_s0_readdata <= std_logic_vector(reg.readdata);
