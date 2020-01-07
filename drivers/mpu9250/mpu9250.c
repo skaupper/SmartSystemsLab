@@ -321,15 +321,7 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
 
   if (dev->irqs == 0x1)
   {
-    pr_info("Received Buffer 1 interrupt");
-  }
-  else if (dev->irqs == 0x2)
-  {
-    pr_info("Received Buffer 2 interrupt");
-  }
-  else if (dev->irqs == 0x3)
-  {
-    printk(KERN_ERR "Received Buffer 1 and Buffer 2 interrupt\n");
+    pr_info("Received buffer 0 interrupt");
   }
   else
   {
@@ -430,8 +422,8 @@ static long dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
     iowrite32(threshold, dev->regs + MEM_OFFSET_SHOCK_THRESHOLD);
     break;
   case IOC_CMD_SET_THRESHOLD:
-    copy_from_user(&threshold, (uint32_t *)arg, sizeof(threshold));
-    pr_info("dev_read: Set acceleration threshold for shock detection to %i.\n", threshold);
+    tmp = copy_from_user(&threshold, (uint32_t *)arg, sizeof(threshold));
+    pr_info("dev_ioctl: Set acceleration threshold for shock detection to %i.\n", threshold);
     iowrite32(threshold, dev->regs + MEM_OFFSET_SHOCK_THRESHOLD);
     break;
   default:
