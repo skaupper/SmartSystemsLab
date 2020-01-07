@@ -181,8 +181,8 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
         dev->buffer_data.buf_acc_y[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
         dev->buffer_data.buf_acc_z[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
 
-        dev->buffer_data.timestamp_lo[i] = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
-        dev->buffer_data.timestamp_hi[i] = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
+        dev->buffer_data.timestamp_lo[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
+        dev->buffer_data.timestamp_hi[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
 
         /* Dummy data for gyro values */
         dev->buffer_data.buf_gyro_x[i] = 0x4000 | i;
