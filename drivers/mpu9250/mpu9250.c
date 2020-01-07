@@ -26,14 +26,14 @@
 
 #define DRIVER_NAME "mpu9250"
 
-#define SIGNAL_EVENT 44 // User space has to listen for this event number
+#define SIGNAL_EVENT 10 // User space has to listen for this event number
 
 #define NUM_BYTE_SENSOR_DATA (3 * 3 * sizeof(uint16_t))
 #define NUM_BYTE_TIMESTAMP (2 * sizeof(uint32_t))
 #define NUM_BYTE_SHOCK_DATA (1024 * 2 * 3 * sizeof(uint16_t))
 
 #define SIZEOF_POLLING_DATA_T (NUM_BYTE_SENSOR_DATA + NUM_BYTE_TIMESTAMP)
-#define SIZEOF_BUFFER_DATA_T (NUM_BYTE_SHOCK_DATA + NUM_BYTE_TIMESTAMP)
+#define SIZEOF_BUFFER_DATA_T (NUM_BYTE_SHOCK_DATA + NUM_BYTE_TIMESTAMP * 1024)
 
 #define MEM_OFFSET_DATA_GYRO_X (0x0)
 #define MEM_OFFSET_DATA_GYRO_Y (0x4)
