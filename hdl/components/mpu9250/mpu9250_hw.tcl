@@ -57,17 +57,12 @@ set_parameter_property gClkFrequency UNITS None
 set_parameter_property gClkFrequency ALLOWED_RANGES 0:2147483647
 set_parameter_property gClkFrequency DESCRIPTION ""
 set_parameter_property gClkFrequency HDL_PARAMETER true
-add_parameter gShockLevel NATURAL 10000000
-set_parameter_property gShockLevel DEFAULT_VALUE 10000000
-set_parameter_property gShockLevel DISPLAY_NAME gShockLevel
-set_parameter_property gShockLevel TYPE NATURAL
-set_parameter_property gShockLevel UNITS None
-set_parameter_property gShockLevel HDL_PARAMETER true
 add_parameter gPreShockCount NATURAL 256
 set_parameter_property gPreShockCount DEFAULT_VALUE 256
 set_parameter_property gPreShockCount DISPLAY_NAME gPreShockCount
 set_parameter_property gPreShockCount TYPE NATURAL
 set_parameter_property gPreShockCount UNITS None
+set_parameter_property gPreShockCount ALLOWED_RANGES 0:2147483647
 set_parameter_property gPreShockCount HDL_PARAMETER true
 
 

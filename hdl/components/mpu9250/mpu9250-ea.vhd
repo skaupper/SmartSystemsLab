@@ -45,7 +45,6 @@ use work.Global.all;
 entity mpu9250 is
    generic (
       gClkFrequency  : natural := 50E6;
-      gShockLevel    : natural := 10E6;
       gPreShockCount : natural := 256);
    port ( 
       iClk               : in  std_logic                     := '0';             -- clock.clk 
@@ -75,7 +74,6 @@ architecture rtl of mpu9250 is
    subtype aSensorValue is std_ulogic_vector (cSensorValueWidth-1 downto 0);
    type aSensorValues is array (0 to cSensorCount-1) of aSensorValue;
 
-   constant cShockLevel       : aSensorValue := std_ulogic_vector(to_unsigned(gShockLevel, cSensorValueWidth));
 
    -- MPU Reg Addresses
    constant cMpuSmplrtDiv     : std_ulogic_vector(7 downto 0) := X"19"; -- 0x00
@@ -143,7 +141,7 @@ architecture rtl of mpu9250 is
    constant cAddrCtrlAvail    : std_logic_vector(3 downto 0) := X"B";
    constant cAddrIntEn        : std_logic_vector(3 downto 0) := X"C";
    constant cAddrIntStatReg   : std_logic_vector(3 downto 0) := X"D";
-   constant cAddrBufSel       : std_logic_vector(3 downto 0) := X"E";
+   constant cAddrShockLvl     : std_logic_vector(3 downto 0) := X"E";
    constant cAddrBufData      : std_logic_vector(3 downto 0) := X"F";
 
    type aMpuCmd is record
@@ -302,20 +300,22 @@ architecture rtl of mpu9250 is
       state => WriteAddr);
 
    type aRegSet is record
-      lock      : std_ulogic;
-      readdata  : std_ulogic_vector(31 downto 0);
-      reg       : aValueSet;
-      shadowReg : aValueSet;
-      timestamp : aTimestamp;
-      valid     : std_ulogic;
-      state     : aMpu9250State;
-      spi       : aSpiReg;
-      ram       : aRamReg;
-      newData   : std_ulogic;
+      lock       : std_ulogic;
+      shockLevel : aSensorValue;
+      readdata   : std_ulogic_vector(31 downto 0);
+      reg        : aValueSet;
+      shadowReg  : aValueSet;
+      timestamp  : aTimestamp;
+      valid      : std_ulogic;
+      state      : aMpu9250State;
+      spi        : aSpiReg;
+      ram        : aRamReg;
+      newData    : std_ulogic;
    end record;
 
    constant cRegSetClear : aRegSet := (
-      lock      => cInactivated,
+      lock       => cInactivated,
+      shockLevel => std_ulogic_vector(to_signed(10E3, cSensorValueWidth)),
       readdata  => (others => '0'),
       reg       => cValueSetClear,
       shadowReg => cValueSetClear,
@@ -549,9 +549,9 @@ begin
                   nxR.ram.ctrl.wAddr <= reg.ram.ctrl.wAddr + 1;
                   nxR.ram.wState     <= Idle;
 
-                  if reg.shadowReg.data(3) > cShockLevel OR
-                     reg.shadowReg.data(4) > cShockLevel OR
-                     reg.shadowReg.data(5) > cShockLevel then
+                  if abs(signed(reg.shadowReg.data(3))) > signed(reg.shockLevel) OR
+                     abs(signed(reg.shadowReg.data(4))) > signed(reg.shockLevel) OR
+                     abs(signed(reg.shadowReg.data(5))) > signed(reg.shockLevel) then
 
                      nxR.ram.state      <= RecShock;
                      nxR.ram.ctrl.rAddr <= reg.ram.ctrl.wAddr - gPreShockCount;
@@ -638,8 +638,8 @@ begin
             when cAddrIntStatReg =>
                nxR.readdata(0) <= reg.ram.int;
 
-            when cAddrBufSel =>
-               null; -- Only one buffer available atm
+            when cAddrShockLvl =>
+               nxR.readdata(15 downto 0) <= reg.shockLevel;
 
             when cAddrBufData =>
                if reg.ram.avail = cActivated AND reg.ram.rInc = cActivated then
@@ -691,8 +691,8 @@ begin
                if avs_s0_writedata(0) = cActivated then
                   nxR.ram.int   <= cInactivated;
                end if;
-            when cAddrBufSel =>
-               null; -- Only one buffer available atm
+            when cAddrShockLvl =>
+               nxR.shockLevel <= std_ulogic_vector(avs_s0_writedata(15 downto 0));
          
             when others =>
                null;
