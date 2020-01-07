@@ -69,6 +69,7 @@
 #define IOC_CMD_SET_READ_POLLING _IO(4711, IOC_MODE_POLLING)
 #define IOC_CMD_SET_READ_BUFFER _IO(4711, IOC_MODE_BUFFER)
 #define IOC_CMD_SET_PID _IO(4711, IOC_SET_PID)
+#define IOC_CMD_SET_THRESHOLD _IO(4711, IOC_SET_THRESHOLD)
 
 typedef struct
 {
@@ -426,6 +427,11 @@ static long dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
   case IOC_CMD_SET_THRESHOLD:
     tmp = copy_from_user(&threshold, (uint32_t *)arg, sizeof(threshold));
     pr_info("dev_ioctl: Set acceleration threshold for shock detection to %i.\n", threshold);
+    iowrite32(threshold, dev->regs + MEM_OFFSET_SHOCK_THRESHOLD);
+    break;
+  case IOC_CMD_SET_THRESHOLD:
+    copy_from_user(&threshold, (uint32_t *)arg, sizeof(threshold));
+    pr_info("dev_read: Set acceleration threshold for shock detection to %i.\n", threshold);
     iowrite32(threshold, dev->regs + MEM_OFFSET_SHOCK_THRESHOLD);
     break;
   default:
