@@ -77,8 +77,8 @@ typedef struct
 
 typedef struct
 {
-  uint32_t timestamp_lo;
-  uint32_t timestamp_hi;
+  uint32_t timestamp_lo[1024];
+  uint32_t timestamp_hi[1024];
   uint16_t buf_acc_x[1024];
   uint16_t buf_acc_y[1024];
   uint16_t buf_acc_z[1024];
@@ -170,13 +170,9 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
   {
     if (buf_data_available == 0x2)
     {
-      pr_info("read_buffer_data: Reading buffer 1 data");
-      /* Select buffer 1 */
+      pr_info("read_buffer_data: Reading buffer 0 data");
+      /* Select buffer 0 */
       iowrite32(0x0, dev->regs + MEM_OFFSET_BUF_SELECT);
-
-      /* Read data */
-      dev->buffer_data.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
-      dev->buffer_data.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
 
       /* Read data from single address (FPGA returns acc_X, acc_Y, acc_Z, acc_X, ...) */
       for (i = 0; i < 1024; i++)
@@ -185,6 +181,9 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
         dev->buffer_data.buf_acc_y[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
         dev->buffer_data.buf_acc_z[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
 
+        dev->buffer_data.timestamp_lo[i] = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
+        dev->buffer_data.timestamp_hi[i] = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
+
         /* Dummy data for gyro values */
         dev->buffer_data.buf_gyro_x[i] = 0x4000 | i;
         dev->buffer_data.buf_gyro_y[i] = 0x5000 | i;
@@ -192,22 +191,25 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
       }
     }
     else
-      printk(KERN_ERR "read_buffer_data: Interrupt 1 occured, but buffer 1 is not ready.\n");
+      printk(KERN_ERR "read_buffer_data: Interrupt 0 occured, but buffer 0 is not ready.\n");
   }
   else if (dev->irqs == 0x2)
   {
     if (buf_data_available == 0x8)
-      pr_info("read_buffer_data: Reading buffer 2 data (not implemented yet)");
+      pr_info("read_buffer_data: Reading buffer 1 data (not implemented yet)");
     else
-      printk(KERN_ERR "read_buffer_data: Interrupt 2 occured, but buffer 2 is not ready.\n");
+      printk(KERN_ERR "read_buffer_data: Interrupt 1 occured, but buffer 1 is not ready.\n");
   }
   else if (dev->irqs == 0x3)
   {
-    printk(KERN_ERR "read_buffer_data: Received buffer 1 and Buffer 2 interrupt\n");
+    printk(KERN_ERR "read_buffer_data: Received buffer 0 and buffer 1 interrupt\n");
   }
 
   /* Interrupts were handled. */
   dev->irqs = 0;
+
+  /* Enable buffer 0 again (it's cleared internally on every interrupt) */
+  iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
@@ -249,9 +251,6 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
 
   /* Reset interrupts (Write '1' to clear) */
   iowrite32(dev->irqs, dev->regs + MEM_OFFSET_BUF_ISR);
-
-  /* Enable buffer 0 again (it's cleared internally on every interrupt) */
-  iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
 
   /* Send signal to user space */
   t = pid_task(find_vpid(dev->pid), PIDTYPE_PID);
