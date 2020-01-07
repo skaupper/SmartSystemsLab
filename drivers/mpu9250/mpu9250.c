@@ -339,9 +339,6 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
   /* Reset interrupts (Write '1' to clear) */
   iowrite32(dev->irqs, dev->regs + MEM_OFFSET_BUF_ISR);
 
-  /* Enable buffer 0 again (it's cleared internally on every interrupt) */
-  iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
-
   /* Send signal to user space */
   t = pid_task(find_vpid(dev->pid), PIDTYPE_PID);
   if (t == NULL)
