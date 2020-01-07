@@ -316,15 +316,15 @@ architecture rtl of mpu9250 is
    constant cRegSetClear : aRegSet := (
       lock       => cInactivated,
       shockLevel => std_ulogic_vector(to_signed(10E3, cSensorValueWidth)),
-      readdata  => (others => '0'),
-      reg       => cValueSetClear,
-      shadowReg => cValueSetClear,
-      timestamp => (others => '0'),
-      valid     => cInactivated,
-      state     => Init,
-      spi       => cSpiRegClear,
-      ram       => cRamRegClear,
-      newData   => cInactivated);
+      readdata   => (others => '0'),
+      reg        => cValueSetClear,
+      shadowReg  => cValueSetClear,
+      timestamp  => (others => '0'),
+      valid      => cInactivated,
+      state      => Init,
+      spi        => cSpiRegClear,
+      ram        => cRamRegClear,
+      newData    => cInactivated);
 
    signal spiOut   : aSpiOut;
    signal msTick   : std_ulogic;
@@ -372,7 +372,8 @@ begin
       wren      => reg.ram.ctrl.write,
       q         => ramRData);
 
-   fsm : process( reg, avs_s0_read, msTick, avs_s0_address, nMpuIntSync, spiOut )
+   fsm : process( reg, msTick, nMpuIntSync, spiOut, ramRData,
+                  avs_s0_read, avs_s0_address, avs_s0_write, avs_s0_writedata )
       variable vRAddr : unsigned(9 downto 0);
    begin
       nxR           <= reg;
@@ -721,6 +722,7 @@ begin
    end process ; -- regProc
 
    ramWData(127 downto 64) <= std_ulogic_vector(reg.shadowReg.timestamp);
+   ramWData( 63 downto 48) <= ((others => '0'));
    ramWData( 47 downto 32) <= reg.shadowReg.data(5);
    ramWData( 31 downto 16) <= reg.shadowReg.data(4);
    ramWData( 15 downto  0) <= reg.shadowReg.data(3);
