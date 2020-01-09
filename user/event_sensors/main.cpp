@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <fstream>
 
 #include "apds9301.h"
 #include "fpga.h"
@@ -67,6 +68,28 @@ void publishSensorData(SENSOR &sensor, mqtt::client &client) {
     publishData(eventData, sensor.getTopic(), client);
 }
 
+/**
+ * Check if the given trust store exists. If not, fall back to the system one.
+ */
+std::optional<std::string> getTrustStore(const std::string &certPath)
+{
+    static const std::string FALLBACK_CERT = "/etc/SmartSystemsLab/ca.crt";
+
+    std::ifstream f(certPath);
+    if (f) {
+        return certPath;
+    }
+
+    f.open(FALLBACK_CERT);
+    if (f) {
+        std::cout << "Using fallback certificate" << std::endl;
+        return FALLBACK_CERT;
+    }
+
+    std::cerr << "No certificate found" << std::endl;
+    return std::nullopt;
+}
+
 
 int main() {
     static const std::string SERVER_URI = "ssl://193.170.192.224:8883";
@@ -86,9 +109,16 @@ int main() {
     std::cout << "Operation mode: dummy data" << std::endl;
 #endif
 
+    //
+    // Setup MQTT client
+    //
     mqtt::client client(SERVER_URI, CLIENT_ID);
     mqtt::ssl_options sslOptions;
-    sslOptions.set_trust_store("ca.crt");
+    auto trustStoreOpt = getTrustStore("ca.crt");
+    if (!trustStoreOpt.has_value()) {
+        return -1;
+    }
+    sslOptions.set_trust_store(trustStoreOpt.value());
 
     mqtt::connect_options options;
     options.set_ssl(sslOptions);
@@ -96,8 +126,10 @@ int main() {
     client.connect(options);
 
 
+    //
+    // Setup sensors
+    //
     HDC1000 hdc1000(50);
-    // TODO: the MQTT lib has some problems with sending this much data, whats the cause for this?
     MPU9250 mpu9250(2);
     APDS9301 apds9301(2.5);
 
@@ -107,6 +139,10 @@ int main() {
     sensorThreads.emplace_back(std::bind(&MPU9250::startPolling, &mpu9250));
     sensorThreads.emplace_back(std::bind(&APDS9301::startPolling, &apds9301));
 
+
+    //
+    // Every second publish all available sensor data at once
+    //
     auto iterationEnd = std::chrono::high_resolution_clock::now();
     while (true) {
         iterationEnd += std::chrono::milliseconds(1000);
@@ -121,7 +157,9 @@ int main() {
         std::this_thread::sleep_until(iterationEnd);
     }
 
-
+    //
+    // Stop and cleanup threads
+    //
     hdc1000.stop();
     mpu9250.stop();
     apds9301.stop();
