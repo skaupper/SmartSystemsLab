@@ -229,7 +229,10 @@ architecture rtl of mpu9250 is
 
    type aRamState is (Idle, WaitShock, RecShock);
    type aRamWriteState is (Idle, IncAddr);
-   type aRamReadState is (X, Y, Z, TimeL, TimeH);
+   type aRamReadState is (AccX,  AccY,  AccZ,
+                          GyroX, GyroY, GyroZ,
+                          MagX,  MagY,  MagZ,
+                          TimeL, TimeH);
 
    function RamStateToULogic (s : aRamState) return std_ulogic is
    begin
@@ -254,7 +257,7 @@ architecture rtl of mpu9250 is
    constant cRamRegClear : aRamReg := (
       state  => Idle,
       wState => Idle,
-      rState => X,
+      rState => AccX,
       rInc   => cActivated,
       intEn  => cInactivated,
       int    => cInactivated,
@@ -329,8 +332,8 @@ architecture rtl of mpu9250 is
    signal spiOut   : aSpiOut;
    signal msTick   : std_ulogic;
    signal reg, nxR : aRegSet;
-   signal ramWData : std_ulogic_vector(127 downto 0);
-   signal ramRData : std_logic_vector(127 downto 0);
+   signal ramWData : std_ulogic_vector(255 downto 0);
+   signal ramRData : std_logic_vector(255 downto 0);
    signal nMpuInt, nMpuIntSync : std_ulogic;
 begin
 
@@ -570,7 +573,7 @@ begin
                   elsif reg.newData = cActivated then
                      nxR.ram.ctrl.write <= cActivated;
                      nxR.ram.wState     <= IncAddr;
-                     nxR.ram.rState     <= X;
+                     nxR.ram.rState     <= AccX;
                   end if;
                when IncAddr =>
                   nxR.ram.ctrl.wAddr <= reg.ram.ctrl.wAddr + 1;
@@ -646,21 +649,39 @@ begin
                if reg.ram.avail = cActivated AND reg.ram.rInc = cActivated then
                   nxR.ram.rInc <= cInactivated;
                   case reg.ram.rState is
-                     when X =>
-                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData(15 downto  0));
-                        nxR.ram.rState <= Y;
-                     when Y =>
-                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData(31 downto 16));
-                        nxR.ram.rState <= Z;
-                     when Z =>
-                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData(47 downto 32));
+                     when AccX =>
+                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData( 15 downto   0));
+                        nxR.ram.rState <= AccY;
+                     when AccY =>
+                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData( 31 downto  16));
+                        nxR.ram.rState <= AccZ;
+                     when AccZ =>
+                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData( 47 downto  32));
+                        nxR.ram.rState <= GyroX;
+                     when GyroX =>
+                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData( 79 downto  64));
+                        nxR.ram.rState <= GyroY;
+                     when GyroY =>
+                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData( 95 downto  80));
+                        nxR.ram.rState <= GyroZ;
+                     when GyroZ =>
+                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData(111 downto  96));
+                        nxR.ram.rState <= MagX;
+                     when MagX =>
+                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData(143 downto 128));
+                        nxR.ram.rState <= MagY;
+                     when MagY =>
+                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData(159 downto 144));
+                        nxR.ram.rState <= MagZ;
+                     when MagZ =>
+                        nxR.readdata(aSensorValue'range) <= std_ulogic_vector(ramRData(175 downto 160));
                         nxR.ram.rState <= TimeL;
                      when TimeL =>
-                        nxR.readdata <= std_ulogic_vector(ramRData(95 downto 64));
+                        nxR.readdata <= std_ulogic_vector(ramRData(223 downto 192));
                         nxR.ram.rState <= TimeH;
                      when TimeH =>
-                        nxR.readdata <= std_ulogic_vector(ramRData(127 downto 96));
-                        nxR.ram.rState <= X;
+                        nxR.readdata <= std_ulogic_vector(ramRData(255 downto 224));
+                        nxR.ram.rState <= AccX;
                         vRAddr := reg.ram.ctrl.rAddr + 1;
                         if vRAddr = reg.ram.ctrl.wAddr then
                            nxR.ram.avail <= cInactivated;
@@ -721,13 +742,21 @@ begin
       end if;
    end process ; -- regProc
 
-   ramWData(127 downto 64) <= std_ulogic_vector(reg.shadowReg.timestamp);
-   ramWData( 63 downto 48) <= ((others => '0'));
-   ramWData( 47 downto 32) <= reg.shadowReg.data(5);
-   ramWData( 31 downto 16) <= reg.shadowReg.data(4);
-   ramWData( 15 downto  0) <= reg.shadowReg.data(3);
-   irq_irq  <= reg.ram.intEn AND reg.ram.int;
+   ramWData(255 downto 192) <= std_ulogic_vector(reg.shadowReg.timestamp);
+   ramWData(191 downto 176) <= X"DEA2";
+   ramWData(175 downto 160) <= reg.shadowReg.data(8);
+   ramWData(159 downto 144) <= reg.shadowReg.data(7);
+   ramWData(143 downto 128) <= reg.shadowReg.data(6);
+   ramWData(127 downto 112) <= X"DEA1";
+   ramWData(111 downto  96) <= reg.shadowReg.data(5);
+   ramWData( 95 downto  80) <= reg.shadowReg.data(4);
+   ramWData( 79 downto  64) <= reg.shadowReg.data(3);
+   ramWData( 63 downto  48) <= X"DEA0";
+   ramWData( 47 downto  32) <= reg.shadowReg.data(2);
+   ramWData( 31 downto  16) <= reg.shadowReg.data(1);
+   ramWData( 15 downto   0) <= reg.shadowReg.data(0);
 
+   irq_irq <= reg.ram.intEn AND reg.ram.int;
    avs_s0_readdata <= std_logic_vector(reg.readdata);
 
 end architecture rtl; -- of new_component
