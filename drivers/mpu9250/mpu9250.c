@@ -317,6 +317,9 @@ static long dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
      * The `current` variable is defined in linux/sched/signal.h */
     dev->pid = task_pid_nr(current);
     pr_info("dev_ioctl: Set current PID to %i.\n", dev->pid);
+    /* Enable buffer 0 again (it's cleared internally on every interrupt) */
+    iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
+
     break;
   case IOC_CMD_SET_THRESHOLD:
     tmp = copy_from_user(&threshold, (uint32_t *)arg, sizeof(threshold));
