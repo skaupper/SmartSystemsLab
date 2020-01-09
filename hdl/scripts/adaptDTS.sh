@@ -24,6 +24,6 @@ perl -i -p -e '$text=`cat .tmp`; s/INSERTIONMARK/$text/g' ${OUTPUT_DTSO}
 sed -i -E "/hps_0_bridges/,/\(hps_0_bridges\)/d" ${OUTPUT_DTS}
 
 #https://lore.kernel.org/patchwork/patch/863149/
-exec sed -E -i -e "s/@0x([0-9a-fA-F\.]+)\s?\{/@\L\1 \{/g" -e "s/@0+([0-9a-fA-F\.]+)\s?\{/@\L\1 \{/g" ${OUTPUT_DTSO}
+sed -E -i -e "s/@0x([0-9a-fA-F\.]+)\s?\{/@\L\1 \{/g" -e "s/@0+([0-9a-fA-F\.]+)\s?\{/@\L\1 \{/g" ${OUTPUT_DTSO}
 
 echo "Leaving file $0 ---------------------------------------------------"
