@@ -106,7 +106,8 @@ std::optional<APDS9301Data> APDS9301::doPoll() {
         return {};
     }
 
-    results.timeStamp = (((uint64_t) pod.timestamp_hi) << 32) | pod.timestamp_lo;
+    auto timestamp = (((uint64_t) pod.timestamp_hi) << 32) | pod.timestamp_lo;
+    results.timeStamp = TimeStampingUnit::getResolvedTimeStamp(timestamp);
     results.value = pod.value;
 
     // close character device
