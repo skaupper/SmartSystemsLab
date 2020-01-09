@@ -47,7 +47,7 @@ int writeToCDev(char chars[], uint8_t brightness) {
 
     // write display values
     for (int i = 0; i < SEGMENT_COUNT; ++i) {
-        if (fputc(values[i], fd) == EOF) {
+        if (fputc(values[i] - '0', fd) == EOF) {
             std::cerr << "Failed to write character (index " << i << ")" << std::endl;
             return -1;
         }
