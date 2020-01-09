@@ -36,6 +36,9 @@ int writeToCDev(char chars[], uint8_t brightness) {
         } else {
             values[i] = '0';
         }
+
+        // Convert to binary for driver
+        values[i] -= '0';
     }
 
     // open character device
