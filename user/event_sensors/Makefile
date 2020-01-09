@@ -1,8 +1,10 @@
 APP_NAME=event_sensors
 
-CPPFLAGS=-Wall -Werror -pedantic -std=c++17 -O2 -g -Wno-psabi
+# DEFINES=NO_SENSORS
+CPPFLAGS=-Wall -Werror -pedantic -std=c++17 -O2 -g -Wno-psabi $(addprefix -D,$(DEFINES))
 # Attention: the lib diretory where the MQTT is installed into may not be in the LD path!
-LDFLAGS=-lpaho-mqtt3a -lpaho-mqttpp3 -lfpgaregion -lpthread
+LDFLAGS=-lpaho-mqtt3as -lpaho-mqttpp3 -lfpgaregion -lpthread
+
 
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(SOURCES:.cpp=.o)

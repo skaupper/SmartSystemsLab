@@ -1,4 +1,6 @@
 #include <mqtt/client.h>
+#include <mqtt/ssl_options.h>
+#include <mqtt/connect_options.h>
 
 #include <algorithm>
 #include <chrono>
@@ -67,8 +69,12 @@ void publishSensorData(SENSOR &sensor, mqtt::client &client) {
 
 
 int main() {
-    static const std::string SERVER_URI = "193.170.192.224:1883";
+    static const std::string SERVER_URI = "ssl://193.170.192.224:8883";
     static const std::string CLIENT_ID  = "event_sensors";
+
+
+#ifndef NO_SENSORS
+    std::cout << "Operation mode: actual sensors" << std::endl;
 
     try {
         initFPGA("event_sensors");
@@ -76,9 +82,19 @@ int main() {
         std::cerr << "Failed to initialize FPGA: " << s << std::endl;
         return -1;
     }
+#else
+    std::cout << "Operation mode: dummy data" << std::endl;
+#endif
 
     mqtt::client client(SERVER_URI, CLIENT_ID);
-    client.connect();
+    mqtt::ssl_options sslOptions;
+    sslOptions.set_trust_store("ca.crt");
+
+    mqtt::connect_options options;
+    options.set_ssl(sslOptions);
+
+    client.connect(options);
+
 
     HDC1000 hdc1000(50);
     // TODO: the MQTT lib has some problems with sending this much data, whats the cause for this?

@@ -84,6 +84,15 @@ static std::function<void(std::vector<MPU9250Data> &&)> fSetEventQueue;
 //
 
 static void eventDataReady(int, siginfo_t *, void *) {
+#ifdef NO_SENSORS
+    std::vector<MPU9250Data> eventData;
+    eventData.push_back({});
+    eventData.push_back({});
+    eventData.push_back({});
+    fSetEventQueue(std::move(eventData));
+    return;
+#endif
+
     static const int READ_SIZE = sizeof(MPU9250EventPOD);
     MPU9250EventPOD pod;
 
@@ -171,9 +180,10 @@ MPU9250::MPU9250(double frequency) : StreamingSensor(frequency) {
     fSetEventQueue = std::bind(&MPU9250::setEventQueue, this, _1);
 
 
+#ifndef NO_SENSORS
     auto fd = fopen(CHARACTER_DEVICE.c_str(), "rb");
     if (!fd) {
-        std::cerr << "Failed to open character device in signal handler" << std::endl;
+        std::cerr << "Failed to open character device sensor constructor" << std::endl;
         return;
     }
 
@@ -183,7 +193,7 @@ MPU9250::MPU9250(double frequency) : StreamingSensor(frequency) {
         return;
     }
 
-    uint32_t threshold = 5000;
+    uint32_t threshold = 10000;
     if (ioctl(fileno(fd), IOC_CMD_SET_THRESHOLD, &threshold) < 0) {
         std::cerr << "Failed to set threshold: " << strerror(errno) << std::endl;
         fclose(fd);
@@ -191,6 +201,7 @@ MPU9250::MPU9250(double frequency) : StreamingSensor(frequency) {
     }
 
     fclose(fd);
+#endif
 
 
     struct sigaction sig;
@@ -200,6 +211,25 @@ MPU9250::MPU9250(double frequency) : StreamingSensor(frequency) {
 }
 
 std::optional<MPU9250Data> MPU9250::doPoll() {
+#ifdef NO_SENSORS
+    static int c = 0;
+
+    MPU9250Data data{};
+    data.timeStamp = TimeStampingUnit::getCurrentTimeStamp();
+    data.gyro_x = 1 * c;
+    data.gyro_y = 2 * c;
+    data.gyro_z = 3 * c;
+    data.acc_x = 11 * c;
+    data.acc_y = 12 * c;
+    data.acc_z = 13 * c;
+    data.mag_x = 21 * c;
+    data.mag_y = 22 * c;
+    data.mag_z = 23 * c;
+
+    c = (c + 1) % 100;
+    return data;
+#endif
+
     static const int READ_SIZE = sizeof(MPU9250PollingPOD);
     MPU9250Data results {};
     MPU9250PollingPOD pod {};

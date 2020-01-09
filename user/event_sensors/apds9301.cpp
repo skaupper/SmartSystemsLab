@@ -7,6 +7,12 @@
 #include "fpga.h"
 #include "tsu.h"
 
+struct APDS9301POD {
+    uint32_t timestamp_lo;
+    uint32_t timestamp_hi;
+    uint16_t value;
+} __attribute__((packed));
+
 
 std::string APDS9301::getTopic() const {
     static const std::string TOPIC_NAME = "sensors/apds9301";
@@ -15,6 +21,11 @@ std::string APDS9301::getTopic() const {
 
 
 void APDS9301::doProcess(APDS9301Data const &data) {
+#ifdef NO_SENSORS
+    // nothing to process here
+    return;
+#endif
+
     //
     // dimm 7-segment display according to the latest light intensity
     //
@@ -22,7 +33,7 @@ void APDS9301::doProcess(APDS9301Data const &data) {
     static const int SEGMENT_COUNT            = 6;
     static const std::string CHARACTER_DEVICE = "/dev/sevensegment";
 
-    uint8_t brightness            = data.POD.value >> 8;
+    uint8_t brightness            = data.value >> 8;
     uint8_t values[SEGMENT_COUNT] = {0};
 
     auto _lck = lockFPGA();
@@ -61,10 +72,22 @@ void APDS9301::doProcess(APDS9301Data const &data) {
 }
 
 std::optional<APDS9301Data> APDS9301::doPoll() {
+#ifdef NO_SENSORS
+    static int c = 0;
+
+    APDS9301Data data{};
+    data.timeStamp = TimeStampingUnit::getCurrentTimeStamp();
+    data.value = 10 * c;
+
+    c = (c + 1) % 100;
+    return data;
+#endif
+
     static const std::string CHARACTER_DEVICE = "/dev/apds9301";
 
-    static const int READ_SIZE = sizeof(APDS9301Data::POD);
+    static const int READ_SIZE = sizeof(APDS9301POD);
     APDS9301Data results {};
+    APDS9301POD pod = {};
 
 
     // lock fpga device using a lock guard
@@ -78,10 +101,13 @@ std::optional<APDS9301Data> APDS9301::doPoll() {
         return {};
     }
 
-    if (fread(&results.POD, READ_SIZE, 1, fd) != 1) {
+    if (fread(&pod, READ_SIZE, 1, fd) != 1) {
         std::cerr << "Failed to read sensor values" << std::endl;
         return {};
     }
+
+    results.timeStamp = (((uint64_t) pod.timestamp_hi) << 32) | pod.timestamp_lo;
+    results.value = pod.value;
 
     // close character device
     (void) fclose(fd);
@@ -90,12 +116,10 @@ std::optional<APDS9301Data> APDS9301::doPoll() {
 }
 
 std::string APDS9301Data::toJsonString() const {
-    uint64_t timeStamp = (((uint64_t) POD.timestamp_hi) << 32) | POD.timestamp_lo;
-
     std::stringstream ss;
     ss << "{";
-    ss << "\"ambient_light\":" << POD.value << ",";
-    ss << "\"timestamp\":" << TimeStampingUnit::getResolvedTimeStamp(timeStamp);
+    ss << "\"ambient_light\":" << value << ",";
+    ss << "\"timestamp\":" << timeStamp;
     ss << "}";
     return ss.str();
 }

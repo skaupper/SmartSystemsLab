@@ -14,6 +14,18 @@ std::string HDC1000::getTopic() const {
 }
 
 std::optional<HDC1000Data> HDC1000::doPoll() {
+#ifdef NO_SENSORS
+    static int c = 0;
+
+    HDC1000Data data{};
+    data.timeStamp = TimeStampingUnit::getCurrentTimeStamp();
+    data.temperature = 1 * c;
+    data.humidity = 1 * (100 - c);
+
+    c = (c + 1) % 100;
+    return data;
+#endif
+
     static const std::string CHARACTER_DEVICE = "/dev/hdc1000";
 
     static const int READ_SIZE          = 12;
