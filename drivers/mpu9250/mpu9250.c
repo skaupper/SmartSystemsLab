@@ -17,10 +17,10 @@
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/io.h>
-#include <linux/interrupt.h>
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
+#include <linux/interrupt.h>
 #include <linux/ioctl.h>
 #include <linux/sched/signal.h>
 
@@ -30,7 +30,7 @@
 
 #define NUM_BYTE_SENSOR_DATA (3 * 3 * sizeof(uint16_t))
 #define NUM_BYTE_TIMESTAMP (2 * sizeof(uint32_t))
-#define NUM_BYTE_SHOCK_DATA (1024 * 2 * 3 * sizeof(uint16_t))
+#define NUM_BYTE_SHOCK_DATA (1024 * 3 * 3 * sizeof(uint16_t))
 
 #define SIZEOF_POLLING_DATA_T (NUM_BYTE_SENSOR_DATA + NUM_BYTE_TIMESTAMP)
 #define SIZEOF_BUFFER_DATA_T (NUM_BYTE_SHOCK_DATA + NUM_BYTE_TIMESTAMP * 1024)
@@ -87,6 +87,9 @@ typedef struct
   uint16_t buf_gyro_x[1024];
   uint16_t buf_gyro_y[1024];
   uint16_t buf_gyro_z[1024];
+  uint16_t buf_mag_x[1024];
+  uint16_t buf_mag_y[1024];
+  uint16_t buf_mag_z[1024];
 } __attribute__((packed)) buffer_data_t;
 
 struct data
@@ -174,20 +177,38 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
     {
       pr_info("read_buffer_data: Reading buffer 0 data");
 
-      /* Read data from single address (FPGA returns acc_X, acc_Y, acc_Z, timestamp_lo, timestamp_hi, acc_X, ...) */
+      /* Read data from single address
+       * NOTE: FPGA returns all the data from the same register address.
+       * The sequence is:
+       *   acc_X, acc_Y, acc_Z,
+       *   gyro_X, gyro_Y, gyro_Z,
+       *   mag_X, mag_Y, mag_Z,
+       *   timestamp_lo, timestamp_hi
+       */
       for (i = 0; i < 1024; i++)
       {
         dev->buffer_data.buf_acc_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
         dev->buffer_data.buf_acc_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
         dev->buffer_data.buf_acc_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
 
+        dev->buffer_data.buf_gyro_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+        dev->buffer_data.buf_gyro_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+        dev->buffer_data.buf_gyro_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+
+        dev->buffer_data.buf_mag_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+        dev->buffer_data.buf_mag_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+        dev->buffer_data.buf_mag_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+
         dev->buffer_data.timestamp_lo[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
         dev->buffer_data.timestamp_hi[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
 
-        /* Dummy data for gyro values */
-        dev->buffer_data.buf_gyro_x[i] = 0x4000 | i;
-        dev->buffer_data.buf_gyro_y[i] = 0x5000 | i;
-        dev->buffer_data.buf_gyro_z[i] = 0x6000 | i;
+        /* TEMPORARY --------------------------------------------------------------------
+         *
+         * Dummy data for gyro values */
+        dev->buffer_data.buf_gyro_x[i] = i * 1;
+        dev->buffer_data.buf_gyro_y[i] = i * 2;
+        dev->buffer_data.buf_gyro_z[i] = i * 3;
+        /* TEMPORARY --------------------------------------------------------------------*/
       }
     }
     else
