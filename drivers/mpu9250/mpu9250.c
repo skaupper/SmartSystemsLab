@@ -102,6 +102,7 @@ struct data
   int size;
   int irq_nr;
   int irqs;
+  int buf_data_available;
   struct miscdevice misc;
 };
 
@@ -147,7 +148,6 @@ static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *
 static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *offp)
 {
   int i;
-  int buf_data_available;
 
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= SIZEOF_BUFFER_DATA_T))
@@ -157,12 +157,15 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
   if ((*offp + count) > SIZEOF_BUFFER_DATA_T)
     count = SIZEOF_BUFFER_DATA_T - *offp;
 
-  /* Check for buffers that are ready */
-  buf_data_available = ioread32(dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
+  /* Check for buffers that are ready
+   * NOTE: This is only done once when initiating the buffer read procedure,
+   *       because the FPGA resets the register on a read. */
+  if (*offp == 0)
+    dev->buf_data_available = ioread32(dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
 
   if (dev->irqs == 0x1)
   {
-    if (buf_data_available == 0x2)
+    if (dev->buf_data_available == 0x2)
     {
       pr_info("read_buffer_data: Reading buffer 0 data");
 
@@ -204,15 +207,29 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
   if (count > 0)
     count = count - copy_to_user(buf, (char *)&dev->buffer_data + *offp, count);
 
-  /* Mark interrupts as handled, when the entire buffer was read. */
-  if ((*offp + count) >= SIZEOF_BUFFER_DATA_T)
+  *offp += count;
+
+  /* Mark interrupts as handled, when the entire buffer was read.
+   * NOTE: To read the entire buffer once, the function dev_read may be called multiple times
+   *       by the kernel. This is due to the large size of the data buffer structure in here.
+   *       The read process is not done in a single kernel call, but is splitted, like following
+   *       example:
+   *          1. The kernel requests a read for the first 20.000 byte
+   *          2. read_buffer_data advances the offp to 20.000 and returns
+   *          3. The kernel requests a read for the next 4.000 byte (the rest to EOF)
+   *          4. read_buffer_data advances the offp to 24.000 (EOF)
+   *          5. Since the file was read entirely to EOF, read_buffer_data resets the FPGA
+   *             to be ready for a new interrupt.
+   */
+  if (*offp >= SIZEOF_BUFFER_DATA_T)
   {
+    /* Reset internal status. */
     dev->irqs = 0;
+    dev->buf_data_available = 0;
+
     /* Enable buffer 0 again (it's disabled internally on every interrupt to keep the data valid) */
     iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
   }
-
-  *offp += count;
 
   return count;
 }
