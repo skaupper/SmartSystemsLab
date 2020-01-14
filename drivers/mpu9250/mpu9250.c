@@ -108,8 +108,7 @@ struct data
 };
 
 /*
- * @brief Reads the sensor data once.
- * @returns Number of byte that were read. (TODO: not 100% sure if 'count' is actually the number of bytes that were read...)
+ * @brief Reads the sensor polling data once.
  */
 static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *offp)
 {
@@ -146,6 +145,9 @@ static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *
   return count;
 }
 
+/*
+ * @brief Reads the sensor buffer data .
+ */
 static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *offp)
 {
   int i;
