@@ -744,17 +744,17 @@ begin
 
    ramWData(255 downto 192) <= std_ulogic_vector(reg.shadowReg.timestamp);
    ramWData(191 downto 176) <= X"DEA2";
-   ramWData(175 downto 160) <= reg.shadowReg.data(8);
-   ramWData(159 downto 144) <= reg.shadowReg.data(7);
-   ramWData(143 downto 128) <= reg.shadowReg.data(6);
+   ramWData(175 downto 160) <= reg.shadowReg.data(8); -- Mag Z
+   ramWData(159 downto 144) <= reg.shadowReg.data(7); -- Mag Y
+   ramWData(143 downto 128) <= reg.shadowReg.data(6); -- Mag X
    ramWData(127 downto 112) <= X"DEA1";
-   ramWData(111 downto  96) <= reg.shadowReg.data(5);
-   ramWData( 95 downto  80) <= reg.shadowReg.data(4);
-   ramWData( 79 downto  64) <= reg.shadowReg.data(3);
+   ramWData(111 downto  96) <= reg.shadowReg.data(2); -- Gyro Z
+   ramWData( 95 downto  80) <= reg.shadowReg.data(1); -- Gyro Y
+   ramWData( 79 downto  64) <= reg.shadowReg.data(0); -- Gyro X
    ramWData( 63 downto  48) <= X"DEA0";
-   ramWData( 47 downto  32) <= reg.shadowReg.data(2);
-   ramWData( 31 downto  16) <= reg.shadowReg.data(1);
-   ramWData( 15 downto   0) <= reg.shadowReg.data(0);
+   ramWData( 47 downto  32) <= reg.shadowReg.data(5); -- Acc Z
+   ramWData( 31 downto  16) <= reg.shadowReg.data(4); -- Acc Y
+   ramWData( 15 downto   0) <= reg.shadowReg.data(3); -- Acc X
 
    irq_irq <= reg.ram.intEn AND reg.ram.int;
    avs_s0_readdata <= std_logic_vector(reg.readdata);
