@@ -208,15 +208,17 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
     printk(KERN_ERR "read_buffer_data: Unexpected interrupt %02x\n", dev->irqs);
   }
 
-  /* Interrupts were handled. */
-  dev->irqs = 0;
-
-  /* Enable buffer 0 again (it's cleared internally on every interrupt) */
-  iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
-
   /* copy data from kernel space buffer into user space */
   if (count > 0)
     count = count - copy_to_user(buf, (char *)&dev->buffer_data + *offp, count);
+
+  /* Mark interrupts as handled, when the entire buffer was read. */
+  if ((*offp + count) >= SIZEOF_BUFFER_DATA_T)
+  {
+    dev->irqs = 0;
+    /* Enable buffer 0 again (it's cleared internally on every interrupt) */
+    iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
+  }
 
   *offp += count;
 
