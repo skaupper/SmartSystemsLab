@@ -68,16 +68,12 @@ int main() {
         return -1;
     }
 
-    std::cout << "here 1" << std::endl;
-
     mqtt::client client(SERVER_URI, CLIENT_ID);
     client.connect();
-    std::cout << "here 2" << std::endl;
 
     HDC1000 hdc1000(50);
     MPU9250 mpu9250(1000);
     APDS9301 apds9301(2.5);
-    std::cout << "here 3" << std::endl;
 
     // start a thread for each sensor
     std::vector<std::thread> sensorThreads;
@@ -85,14 +81,13 @@ int main() {
     sensorThreads.emplace_back(std::bind(&MPU9250::startPolling, &mpu9250));
     sensorThreads.emplace_back(std::bind(&APDS9301::startPolling, &apds9301));
 
-    std::cout << "here 4" << std::endl;
 
     while (true) {
-         std::cout << "HDC1000: ";
+        // std::cout << "HDC1000: ";
         publishSensorData(hdc1000, client);
-         std::cout << "MPU9250: ";
+        // std::cout << "MPU9250: ";
         publishSensorData(mpu9250, client);
-         std::cout << "APDS9301: ";
+        // std::cout << "APDS9301: ";
         publishSensorData(apds9301, client);
         std::this_thread::sleep_for(1000ms);
     }
