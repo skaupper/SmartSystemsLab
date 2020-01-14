@@ -23,19 +23,25 @@
 
 #define DRIVER_NAME "hdc1000"
 
-#define NUM_BYTE_DATA 4
-#define NUM_BYTE_TIMESTAMP 8
-
+#define NUM_BYTE_DATA (sizeof(uint32_t))
+#define NUM_BYTE_TIMESTAMP (2 * sizeof(uint32_t))
 #define BUF_SIZE (NUM_BYTE_DATA + NUM_BYTE_TIMESTAMP)
 
 #define MEM_OFFSET_DATA (0x0)
 #define MEM_OFFSET_TIMESTAMP_LOW (0x4)
 #define MEM_OFFSET_TIMESTAMP_HIGH (0x8)
 
+typedef struct
+{
+  uint32_t brightness;
+  uint32_t timestamp_lo;
+  uint32_t timestamp_hi;
+} __attribute__((packed)) buffer_t;
+
 struct data
 {
   void *regs;
-  char buffer[BUF_SIZE];
+  buffer_t buffer;
   int size;
   struct miscdevice misc;
 };
@@ -48,7 +54,11 @@ static int dev_read(struct file *filep, char *buf, size_t count,
 {
   struct data *dev = container_of(filep->private_data,
                                   struct data, misc);
-  unsigned int rdata;
+  if (BUF_SIZE != sizeof(dev->buffer))
+  {
+    printk(KERN_ERR "Data struct buffer_t is not allocated as expected.\n");
+    return -ENOEXEC;
+  }
 
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
@@ -59,27 +69,13 @@ static int dev_read(struct file *filep, char *buf, size_t count,
     count = BUF_SIZE - *offp;
 
   /* read data from FPGA and store into kernel space buffer */
-  rdata = ioread32(dev->regs + MEM_OFFSET_DATA);
-  dev->buffer[0] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[1] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[2] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[3] = ((rdata & 0xFF000000) >> 24);
-
-  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
-  dev->buffer[4] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[5] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[6] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[7] = ((rdata & 0xFF000000) >> 24);
-
-  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
-  dev->buffer[8] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[9] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[10] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[11] = ((rdata & 0xFF000000) >> 24);
+  dev->buffer.brightness = ioread32(dev->regs + MEM_OFFSET_DATA);
+  dev->buffer.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
+  dev->buffer.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
-    count = count - copy_to_user(buf, dev->buffer + *offp, count);
+    count = count - copy_to_user(buf, (char *)&dev->buffer + *offp, count);
 
   *offp += count;
 

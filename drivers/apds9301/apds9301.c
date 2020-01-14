@@ -58,7 +58,6 @@ static int dev_read(struct file *filep, char *buf, size_t count,
   if (BUF_SIZE != sizeof(dev->buffer))
   {
     printk(KERN_ERR "Data struct buffer_t is not allocated as expected.\n");
-    BUG();
     return -ENOEXEC;
   }
 
