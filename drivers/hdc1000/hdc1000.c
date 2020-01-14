@@ -23,19 +23,25 @@
 
 #define DRIVER_NAME "hdc1000"
 
-#define NUM_BYTE_DATA 4
-#define NUM_BYTE_TIMESTAMP 8
-
+#define NUM_BYTE_DATA (sizeof(uint32_t))
+#define NUM_BYTE_TIMESTAMP (2 * sizeof(uint32_t))
 #define BUF_SIZE (NUM_BYTE_DATA + NUM_BYTE_TIMESTAMP)
 
 #define MEM_OFFSET_DATA (0x0)
 #define MEM_OFFSET_TIMESTAMP_LOW (0x4)
 #define MEM_OFFSET_TIMESTAMP_HIGH (0x8)
 
-struct humid_temp
+typedef struct
+{
+  uint32_t brightness;
+  uint32_t timestamp_lo;
+  uint32_t timestamp_hi;
+} __attribute__((packed)) buffer_t;
+
+struct data
 {
   void *regs;
-  char buffer[BUF_SIZE];
+  buffer_t buffer;
   int size;
   struct miscdevice misc;
 };
@@ -43,12 +49,16 @@ struct humid_temp
 /*
  * @brief This function gets executed on fread.
  */
-static int humid_temp_read(struct file *filep, char *buf, size_t count,
-                           loff_t *offp)
+static int dev_read(struct file *filep, char *buf, size_t count,
+                    loff_t *offp)
 {
-  struct humid_temp *dev = container_of(filep->private_data,
-                                        struct humid_temp, misc);
-  unsigned int rdata;
+  struct data *dev = container_of(filep->private_data,
+                                  struct data, misc);
+  if (BUF_SIZE != sizeof(dev->buffer))
+  {
+    printk(KERN_ERR "Data struct buffer_t is not allocated as expected.\n");
+    return -ENOEXEC;
+  }
 
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
@@ -59,40 +69,26 @@ static int humid_temp_read(struct file *filep, char *buf, size_t count,
     count = BUF_SIZE - *offp;
 
   /* read data from FPGA and store into kernel space buffer */
-  rdata = ioread32(dev->regs + MEM_OFFSET_DATA);
-  dev->buffer[0] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[1] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[2] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[3] = ((rdata & 0xFF000000) >> 24);
-
-  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
-  dev->buffer[4] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[5] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[6] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[7] = ((rdata & 0xFF000000) >> 24);
-
-  rdata = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
-  dev->buffer[8] = ((rdata & 0x000000FF) >> 0);
-  dev->buffer[9] = ((rdata & 0x0000FF00) >> 8);
-  dev->buffer[10] = ((rdata & 0x00FF0000) >> 16);
-  dev->buffer[11] = ((rdata & 0xFF000000) >> 24);
+  dev->buffer.brightness = ioread32(dev->regs + MEM_OFFSET_DATA);
+  dev->buffer.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
+  dev->buffer.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
-    count = count - copy_to_user(buf, dev->buffer + *offp, count);
+    count = count - copy_to_user(buf, (char *)&dev->buffer + *offp, count);
 
   *offp += count;
 
   return count;
 }
 
-static const struct file_operations humid_temp_fops = {
+static const struct file_operations dev_fops = {
     .owner = THIS_MODULE,
-    .read = humid_temp_read};
+    .read = dev_read};
 
 static int dev_probe(struct platform_device *pdev)
 {
-  struct humid_temp *dev;
+  struct data *dev;
   struct resource *io;
   int retval;
 
@@ -109,7 +105,7 @@ static int dev_probe(struct platform_device *pdev)
   dev->size = io->end - io->start + 1;
   dev->misc.name = DRIVER_NAME;
   dev->misc.minor = MISC_DYNAMIC_MINOR;
-  dev->misc.fops = &humid_temp_fops;
+  dev->misc.fops = &dev_fops;
   dev->misc.parent = &pdev->dev;
   retval = misc_register(&dev->misc);
   if (retval)
@@ -125,7 +121,7 @@ static int dev_probe(struct platform_device *pdev)
 
 static int dev_remove(struct platform_device *pdev)
 {
-  struct humid_temp *dev = platform_get_drvdata(pdev);
+  struct data *dev = platform_get_drvdata(pdev);
 
   misc_deregister(&dev->misc);
   platform_set_drvdata(pdev, NULL);
@@ -133,25 +129,25 @@ static int dev_remove(struct platform_device *pdev)
   return 0;
 }
 
-static const struct of_device_id humid_temp_of_match[] = {
+static const struct of_device_id dev_of_match[] = {
     {
         .compatible = "goe,humid_temp-1.0",
     },
     {},
 };
-MODULE_DEVICE_TABLE(of, humid_temp_of_match);
+MODULE_DEVICE_TABLE(of, dev_of_match);
 
-static struct platform_driver humid_temp_driver = {
+static struct platform_driver dev_driver = {
     .driver = {
         .name = DRIVER_NAME,
         .owner = THIS_MODULE,
-        .of_match_table = of_match_ptr(humid_temp_of_match),
+        .of_match_table = of_match_ptr(dev_of_match),
     },
     .probe = dev_probe,
     .remove = dev_remove,
 };
 
-module_platform_driver(humid_temp_driver);
+module_platform_driver(dev_driver);
 
 MODULE_AUTHOR("M.Wurm");
 MODULE_DESCRIPTION("Altera/Terasic HDC1000 Humidity/Temperature driver");
