@@ -1,20 +1,6 @@
 .vscode/
 
-hdl/*
-hdl/scripts/*
-hdl/scripts/*.bat
-hdl/scripts/*.sh
-!hdl/scripts/
-!hdl/ip/
-!hdl/components/
-!hdl/top.qpf
-!hdl/top.qsf
-!hdl/top.vhd
-!hdl/HPSPlatform.qsys
-hdl/scripts/*
-!hdl/scripts/*.bat
-!hdl/scripts/*.sh
-
+# Makefile compilation temporary files
 drivers/**/*.o
 drivers/**/*.d
 drivers/**/*.cmd
@@ -27,9 +13,23 @@ drivers/**/.tmp_versions/
 
 user/**/*.o
 user/show_ip/show_ip
+user/streaming_sensors/streaming_sensors
 
+# ModelSim temporary files
 work/
 transcript
 *.wlf
 *~
+
+# Quartus temporary files
 .qsys_edit/
+db/
+HPSPlatform/
+incremental_db/
+*.sopcinfo
+*.qdf
+c5_pin_model_dump.txt
+*.tmp
+output_files/
+output/
+hps_isw_handoff/
