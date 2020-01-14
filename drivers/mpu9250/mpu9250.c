@@ -101,6 +101,7 @@ struct data
   int pid;
   int size;
   int irq_nr;
+  int irq_count;
   int irqs_active;
   int buf_data_available;
   struct miscdevice misc;
@@ -247,7 +248,8 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
 
   if (dev->irqs_active == 0x1)
   {
-    pr_info("Received buffer 0 interrupt");
+    dev->irq_count++;
+    pr_info("Received buffer 0 interrupt [Occured %i times so far.]\n", dev->irq_count);
   }
   else
   {
