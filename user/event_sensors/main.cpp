@@ -1,6 +1,7 @@
 #include <mqtt/client.h>
 #include <mqtt/ssl_options.h>
 #include <mqtt/connect_options.h>
+#include <zlib.h>
 
 #include <algorithm>
 #include <chrono>
@@ -12,6 +13,7 @@
 #include <string>
 #include <thread>
 #include <fstream>
+#include <cassert>
 
 #include "apds9301.h"
 #include "fpga.h"
@@ -22,13 +24,61 @@
 using namespace std::literals::chrono_literals;
 
 
-template<class DATA>
-void publishData(const std::vector<DATA> &data, const std::string &topic, mqtt::client &client) {
+void compressMemory(void *in_data, size_t in_data_size, std::vector<uint8_t> &out_data)
+{
+    std::vector<uint8_t> buffer;
+
+    const size_t BUFSIZE = 128 * 1024;
+    uint8_t temp_buffer[BUFSIZE];
+
+    z_stream strm;
+    strm.zalloc = 0;
+    strm.zfree = 0;
+    strm.next_in = reinterpret_cast<uint8_t *>(in_data);
+    strm.avail_in = in_data_size;
+    strm.next_out = temp_buffer;
+    strm.avail_out = BUFSIZE;
+
+    deflateInit(&strm, Z_BEST_COMPRESSION);
+
+    while (strm.avail_in != 0)
+    {
+        int res = deflate(&strm, Z_NO_FLUSH);
+        assert(res == Z_OK);
+        if (strm.avail_out == 0)
+        {
+            buffer.insert(buffer.end(), temp_buffer, temp_buffer + BUFSIZE);
+            strm.next_out = temp_buffer;
+            strm.avail_out = BUFSIZE;
+        }
+    }
+
+    int deflate_res = Z_OK;
+    while (deflate_res == Z_OK)
+    {
+        if (strm.avail_out == 0)
+        {
+            buffer.insert(buffer.end(), temp_buffer, temp_buffer + BUFSIZE);
+            strm.next_out = temp_buffer;
+            strm.avail_out = BUFSIZE;
+        }
+        deflate_res = deflate(&strm, Z_FINISH);
+    }
+
+    assert(deflate_res == Z_STREAM_END);
+    buffer.insert(buffer.end(), temp_buffer, temp_buffer + BUFSIZE - strm.avail_out);
+    deflateEnd(&strm);
+
+    out_data.swap(buffer);
+}
+
+template <class DATA>
+void publishData(const std::vector<DATA> &data, const std::string &topic, mqtt::client &client)
+{
     static const int MAX_PACKETS_PER_BURST = 100;
 
     std::stringstream msg;
     std::string payloadString;
-
 
     // how many burst packets need to be sent?
     int bursts = std::ceil(1.0 * data.size() / MAX_PACKETS_PER_BURST);
@@ -53,7 +103,10 @@ void publishData(const std::vector<DATA> &data, const std::string &topic, mqtt::
         msg << "]";
         payloadString = msg.str();
 
-        client.publish(topic, payloadString.data(), payloadString.size());
+        std::vector<uint8_t> compressedPayload;
+        compressMemory(payloadString.data(), payloadString.size(), compressedPayload);
+
+        client.publish(topic, compressedPayload.data(), compressedPayload.size());
     }
 }
 

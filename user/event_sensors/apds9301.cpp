@@ -15,7 +15,7 @@ struct APDS9301POD {
 
 
 std::string APDS9301::getTopic() const {
-    static const std::string TOPIC_NAME = "sensors/apds9301";
+    static const std::string TOPIC_NAME = "compressed/sensors/apds9301";
     return TOPIC_NAME;
 }
 

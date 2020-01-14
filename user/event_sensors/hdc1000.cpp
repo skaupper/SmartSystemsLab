@@ -9,7 +9,7 @@
 
 
 std::string HDC1000::getTopic() const {
-    static const std::string TOPIC_NAME = "sensors/hdc1000";
+    static const std::string TOPIC_NAME = "compressed/sensors/hdc1000";
     return TOPIC_NAME;
 }
 

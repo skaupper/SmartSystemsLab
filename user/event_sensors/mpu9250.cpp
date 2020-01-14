@@ -172,7 +172,7 @@ static void eventDataReady(int, siginfo_t *, void *) {
 //
 
 std::string MPU9250::getTopic() const {
-    static const std::string TOPIC_NAME = "sensors/mpu9250";
+    static const std::string TOPIC_NAME = "compressed/sensors/mpu9250";
     return TOPIC_NAME;
 }
 
