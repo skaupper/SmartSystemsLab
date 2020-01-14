@@ -176,13 +176,18 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
        */
       for (i = 0; i < 1024; i++)
       {
-        dev->buffer_data.buf_acc_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
-        dev->buffer_data.buf_acc_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
-        dev->buffer_data.buf_acc_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
-
+        /* TEMPORARY --------------------------------------------------------------------*/
+        /* read sequence of acc and gyro is swapped here.           */
+        /*  ==> as soon as this is fixed in the FPGA, swap it again */
+        /*      (see correct read sequence in comment above)        */
+        /* TEMPORARY END --------------------------------------------------------------------*/
         dev->buffer_data.buf_gyro_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
         dev->buffer_data.buf_gyro_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
         dev->buffer_data.buf_gyro_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+
+        dev->buffer_data.buf_acc_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+        dev->buffer_data.buf_acc_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+        dev->buffer_data.buf_acc_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
 
         dev->buffer_data.buf_mag_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
         dev->buffer_data.buf_mag_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
@@ -194,10 +199,10 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
         /* TEMPORARY --------------------------------------------------------------------
          *
          * Dummy data for gyro values */
-        dev->buffer_data.buf_gyro_x[i] = i * 1;
-        dev->buffer_data.buf_gyro_y[i] = i * 2;
-        dev->buffer_data.buf_gyro_z[i] = i * 3;
-        /* TEMPORARY --------------------------------------------------------------------*/
+        //dev->buffer_data.buf_gyro_x[i] = i * 1;
+        //dev->buffer_data.buf_gyro_y[i] = i * 2;
+        //dev->buffer_data.buf_gyro_z[i] = i * 3;
+        /* TEMPORARY END --------------------------------------------------------------------*/
       }
     }
     else
