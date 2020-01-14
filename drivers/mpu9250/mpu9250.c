@@ -162,17 +162,18 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
 
   /* Check for buffers that are ready
    * NOTE: This is only done once when initiating the buffer read procedure,
-   *       because the FPGA resets the register on a read. */
+   *       because the FPGA resets the registers on a read. */
   if (*offp == 0)
+  {
     dev->buf_data_available = ioread32(dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
 
-  if (dev->irqs_active == 0x1)
-  {
-    if (dev->buf_data_available == 0x2)
+    if (dev->irqs_active == 0x1)
     {
-      pr_info("read_buffer_data: Reading buffer 0 data");
+      if (dev->buf_data_available == 0x2)
+      {
+        pr_info("read_buffer_data: Reading buffer 0 data");
 
-      /* Read data from single address
+        /* Read data from single address
        * NOTE: FPGA returns all the data from the same register address.
        * The sequence is:
        *   acc_X, acc_Y, acc_Z,
@@ -180,30 +181,31 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
        *   mag_X, mag_Y, mag_Z,
        *   timestamp_lo, timestamp_hi
        */
-      for (i = 0; i < 1024; i++)
-      {
-        dev->buffer_data.buf_acc_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
-        dev->buffer_data.buf_acc_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
-        dev->buffer_data.buf_acc_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+        for (i = 0; i < 1024; i++)
+        {
+          dev->buffer_data.buf_acc_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+          dev->buffer_data.buf_acc_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+          dev->buffer_data.buf_acc_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
 
-        dev->buffer_data.buf_gyro_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
-        dev->buffer_data.buf_gyro_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
-        dev->buffer_data.buf_gyro_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+          dev->buffer_data.buf_gyro_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+          dev->buffer_data.buf_gyro_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+          dev->buffer_data.buf_gyro_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
 
-        dev->buffer_data.buf_mag_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
-        dev->buffer_data.buf_mag_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
-        dev->buffer_data.buf_mag_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+          dev->buffer_data.buf_mag_x[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+          dev->buffer_data.buf_mag_y[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
+          dev->buffer_data.buf_mag_z[i] = ioread16(dev->regs + MEM_OFFSET_BUF_DATA);
 
-        dev->buffer_data.timestamp_lo[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
-        dev->buffer_data.timestamp_hi[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
+          dev->buffer_data.timestamp_lo[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
+          dev->buffer_data.timestamp_hi[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
+        }
       }
+      else
+        printk(KERN_ERR "read_buffer_data: Interrupt 0 occured, but buffer 0 is not ready.\n");
     }
     else
-      printk(KERN_ERR "read_buffer_data: Interrupt 0 occured, but buffer 0 is not ready.\n");
-  }
-  else
-  {
-    printk(KERN_ERR "read_buffer_data: Unexpected interrupt 0x%08x\n", dev->irqs_active);
+    {
+      printk(KERN_ERR "read_buffer_data: Unexpected interrupt 0x%08x\n", dev->irqs_active);
+    }
   }
 
   /* copy data from kernel space buffer into user space */
