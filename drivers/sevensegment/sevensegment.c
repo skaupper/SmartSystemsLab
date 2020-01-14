@@ -31,10 +31,17 @@
 #define MEM_OFFSET_BRIGHTNESS (0x4)
 #define MEM_OFFSET_ENABLE (0x8)
 
-struct altera_sevenseg
+typedef struct
+{
+  uint8_t hex_digit[HEX_NUM];
+  uint8_t hex_brightness;
+  uint8_t hex_enable;
+} __attribute__((packed)) buffer_t;
+
+struct data_t
 {
   void *regs;
-  char buffer[BUF_SIZE];
+  buffer_t buffer;
   int size;
   struct miscdevice misc;
 };
@@ -42,11 +49,16 @@ struct altera_sevenseg
 /*
  * @brief This function gets executed on fread.
  */
-static int sevenseg_read(struct file *filep, char *buf, size_t count,
-                         loff_t *offp)
+static int dev_read(struct file *filep, char *buf, size_t count, loff_t *offp)
 {
-  struct altera_sevenseg *sevenseg = container_of(filep->private_data,
-                                                  struct altera_sevenseg, misc);
+  struct data_t *dev = container_of(filep->private_data,
+                                    struct data_t, misc);
+  if (BUF_SIZE != sizeof(dev->buffer))
+  {
+    printk(KERN_ERR "Data struct buffer_t is not allocated as expected.\n");
+    return -ENOEXEC;
+  }
+
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
     return 0;
@@ -57,7 +69,7 @@ static int sevenseg_read(struct file *filep, char *buf, size_t count,
 
   /* copy data from kernel space buffer into user space */
   if (count > 0)
-    count = count - copy_to_user(buf, sevenseg->buffer + *offp, count);
+    count = count - copy_to_user(buf, (char *)&dev->buffer + *offp, count);
 
   *offp += count;
   return count;
@@ -68,13 +80,13 @@ static int sevenseg_read(struct file *filep, char *buf, size_t count,
  * @details Digits to be displayed are expected in hexadecimal
  * format (i.e. 0x5->5; 0xA->A, 0xC->C, ...).
  */
-static int sevenseg_write(struct file *filep, const char *buf,
-                          size_t count, loff_t *offp)
+static int dev_write(struct file *filep, const char *buf,
+                     size_t count, loff_t *offp)
 {
   int i = 0;
   u8 hex;
-  struct altera_sevenseg *sevenseg = container_of(filep->private_data,
-                                                  struct altera_sevenseg, misc);
+  struct data_t *dev = container_of(filep->private_data,
+                                    struct data_t, misc);
 
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= BUF_SIZE))
@@ -86,7 +98,7 @@ static int sevenseg_write(struct file *filep, const char *buf,
 
   /* copy data from user space into kernel space buffer */
   if (count > 0)
-    count = count - copy_from_user(sevenseg->buffer + *offp, buf, count);
+    count = count - copy_from_user((char *)&dev->buffer + *offp, buf, count);
 
   *offp += count;
 
@@ -94,46 +106,46 @@ static int sevenseg_write(struct file *filep, const char *buf,
   for (i = 0; i < HEX_NUM; i += 2)
   {
     /* A HEX display can only represent digits from 0-F */
-    if (sevenseg->buffer[i] > 0xF || sevenseg->buffer[i + 1] > 0xF)
+    if (dev->buffer.hex_digit[i] > 0xF || dev->buffer.hex_digit[i + 1] > 0xF)
       return -EINVAL;
 
     /* combine two raw bytes into a single byte, which equals two sevenseg digits */
-    hex = ((sevenseg->buffer[i]) << 4) | (sevenseg->buffer[i + 1]);
-    iowrite8(hex, sevenseg->regs + MEM_OFFSET_VALUE + (HEX_NUM - i - 1) / 2);
+    hex = ((dev->buffer.hex_digit[i]) << 4) | (dev->buffer.hex_digit[i + 1]);
+    iowrite8(hex, dev->regs + MEM_OFFSET_VALUE + (HEX_NUM - i - 1) / 2);
   }
-  iowrite8(sevenseg->buffer[6], sevenseg->regs + MEM_OFFSET_BRIGHTNESS);
-  iowrite8(sevenseg->buffer[7], sevenseg->regs + MEM_OFFSET_ENABLE);
+  iowrite8(dev->buffer.hex_brightness, dev->regs + MEM_OFFSET_BRIGHTNESS);
+  iowrite8(dev->buffer.hex_enable, dev->regs + MEM_OFFSET_ENABLE);
 
   return count;
 }
 
-static const struct file_operations sevenseg_fops = {
+static const struct file_operations dev_fops = {
     .owner = THIS_MODULE,
-    .read = sevenseg_read,
-    .write = sevenseg_write};
+    .read = dev_read,
+    .write = dev_write};
 
-static int sevenseg_probe(struct platform_device *pdev)
+static int dev_probe(struct platform_device *pdev)
 {
-  struct altera_sevenseg *sevenseg;
+  struct data_t *dev;
   struct resource *io;
   int retval;
 
-  sevenseg = devm_kzalloc(&pdev->dev, sizeof(*sevenseg), GFP_KERNEL);
-  if (sevenseg == NULL)
+  dev = devm_kzalloc(&pdev->dev, sizeof(*dev), GFP_KERNEL);
+  if (dev == NULL)
     return -ENOMEM;
-  platform_set_drvdata(pdev, sevenseg);
+  platform_set_drvdata(pdev, dev);
 
   io = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-  sevenseg->regs = devm_ioremap_resource(&pdev->dev, io);
-  if (IS_ERR(sevenseg->regs))
-    return PTR_ERR(sevenseg->regs);
+  dev->regs = devm_ioremap_resource(&pdev->dev, io);
+  if (IS_ERR(dev->regs))
+    return PTR_ERR(dev->regs);
 
-  sevenseg->size = io->end - io->start + 1;
-  sevenseg->misc.name = DRIVER_NAME;
-  sevenseg->misc.minor = MISC_DYNAMIC_MINOR;
-  sevenseg->misc.fops = &sevenseg_fops;
-  sevenseg->misc.parent = &pdev->dev;
-  retval = misc_register(&sevenseg->misc);
+  dev->size = io->end - io->start + 1;
+  dev->misc.name = DRIVER_NAME;
+  dev->misc.minor = MISC_DYNAMIC_MINOR;
+  dev->misc.fops = &dev_fops;
+  dev->misc.parent = &pdev->dev;
+  retval = misc_register(&dev->misc);
   if (retval)
   {
     dev_err(&pdev->dev, "Register misc device failed!\n");
@@ -145,35 +157,35 @@ static int sevenseg_probe(struct platform_device *pdev)
   return 0;
 }
 
-static int sevenseg_remove(struct platform_device *pdev)
+static int dev_remove(struct platform_device *pdev)
 {
-  struct altera_sevenseg *sevenseg = platform_get_drvdata(pdev);
+  struct data_t *dev = platform_get_drvdata(pdev);
 
-  misc_deregister(&sevenseg->misc);
+  misc_deregister(&dev->misc);
   platform_set_drvdata(pdev, NULL);
 
   return 0;
 }
 
-static const struct of_device_id sevenseg_of_match[] = {
+static const struct of_device_id dev_of_match[] = {
     {
         .compatible = "hof,sevensegment-1.0",
     },
     {},
 };
-MODULE_DEVICE_TABLE(of, sevenseg_of_match);
+MODULE_DEVICE_TABLE(of, dev_of_match);
 
-static struct platform_driver sevenseg_driver = {
+static struct platform_driver dev_driver = {
     .driver = {
         .name = DRIVER_NAME,
         .owner = THIS_MODULE,
-        .of_match_table = of_match_ptr(sevenseg_of_match),
+        .of_match_table = of_match_ptr(dev_of_match),
     },
-    .probe = sevenseg_probe,
-    .remove = sevenseg_remove,
+    .probe = dev_probe,
+    .remove = dev_remove,
 };
 
-module_platform_driver(sevenseg_driver);
+module_platform_driver(dev_driver);
 
 MODULE_AUTHOR("M.Wurm");
 MODULE_DESCRIPTION("Altera/Terasic seven segment driver");
