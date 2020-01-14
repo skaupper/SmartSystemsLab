@@ -101,7 +101,7 @@ struct data
   int pid;
   int size;
   int irq_nr;
-  int irqs;
+  int irqs_active;
   int buf_data_available;
   struct miscdevice misc;
 };
@@ -163,7 +163,7 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
   if (*offp == 0)
     dev->buf_data_available = ioread32(dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
 
-  if (dev->irqs == 0x1)
+  if (dev->irqs_active == 0x1)
   {
     if (dev->buf_data_available == 0x2)
     {
@@ -200,7 +200,7 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
   }
   else
   {
-    printk(KERN_ERR "read_buffer_data: Unexpected interrupt %02x\n", dev->irqs);
+    printk(KERN_ERR "read_buffer_data: Unexpected interrupt 0x%08x\n", dev->irqs_active);
   }
 
   /* copy data from kernel space buffer into user space */
@@ -224,7 +224,7 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
   if (*offp >= SIZEOF_BUFFER_DATA_T)
   {
     /* Reset internal status. */
-    dev->irqs = 0;
+    dev->irqs_active = 0;
     dev->buf_data_available = 0;
 
     /* Enable buffer 0 again (it's disabled internally on every interrupt to keep the data valid) */
@@ -243,9 +243,9 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
   pr_info("Interrupt occured\n");
 
   /* Determine which interrupt occured */
-  dev->irqs = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
+  dev->irqs_active = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
 
-  if (dev->irqs == 0x1)
+  if (dev->irqs_active == 0x1)
   {
     pr_info("Received buffer 0 interrupt");
   }
@@ -256,7 +256,7 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
   }
 
   /* Reset interrupts (Write '1' to clear) */
-  iowrite32(dev->irqs, dev->regs + MEM_OFFSET_BUF_ISR);
+  iowrite32(dev->irqs_active, dev->regs + MEM_OFFSET_BUF_ISR);
 
   /* Send signal to user space */
   t = pid_task(find_vpid(dev->pid), PIDTYPE_PID);
