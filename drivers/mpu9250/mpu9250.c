@@ -190,14 +190,6 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
 
         dev->buffer_data.timestamp_lo[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
         dev->buffer_data.timestamp_hi[i] = ioread32(dev->regs + MEM_OFFSET_BUF_DATA);
-
-        /* TEMPORARY --------------------------------------------------------------------
-         *
-         * Dummy data for gyro values */
-        dev->buffer_data.buf_gyro_x[i] = i * 1;
-        dev->buffer_data.buf_gyro_y[i] = i * 2;
-        dev->buffer_data.buf_gyro_z[i] = i * 3;
-        /* TEMPORARY --------------------------------------------------------------------*/
       }
     }
     else
