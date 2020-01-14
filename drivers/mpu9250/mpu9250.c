@@ -17,7 +17,6 @@
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/io.h>
-#include <linux/interrupt.h>
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
@@ -160,7 +159,6 @@ static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *
 static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *offp)
 {
   int i;
-  int buf_data_available;
 
   /* Read data, depending on current mode */
   switch (dev->mode)
@@ -319,9 +317,10 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
   /* Determine which interrupt occured */
   dev->irqs = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
 
-  if (dev->irqs == 0x1)
+  if (dev->irqs_active == 0x1)
   {
-    pr_info("Received buffer 0 interrupt");
+    dev->irq_count++;
+    pr_info("Received buffer 0 interrupt [Occured %i times so far.]\n", dev->irq_count);
   }
   else
   {
@@ -330,7 +329,7 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
   }
 
   /* Reset interrupts (Write '1' to clear) */
-  iowrite32(dev->irqs, dev->regs + MEM_OFFSET_BUF_ISR);
+  iowrite32(dev->irqs_active, dev->regs + MEM_OFFSET_BUF_ISR);
 
   /* Send signal to user space */
   t = pid_task(find_vpid(dev->pid), PIDTYPE_PID);
