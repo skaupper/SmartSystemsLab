@@ -62,14 +62,6 @@
 #define IOC_CMD_SET_PID _IO(4711, IOC_SET_PID)
 #define IOC_CMD_SET_THRESHOLD _IOW(4711, IOC_SET_THRESHOLD, uint32_t *)
 
-/* IO Control (IOCTL) */
-#define IOC_MODE_POLLING 0
-#define IOC_MODE_BUFFER 1
-#define IOC_CMD_SET_READ_POLLING _IO(4711, IOC_MODE_POLLING)
-#define IOC_CMD_SET_READ_BUFFER _IO(4711, IOC_MODE_BUFFER)
-#define IOC_CMD_SET_PID _IO(4711, IOC_SET_PID)
-#define IOC_CMD_SET_THRESHOLD _IOW(4711, IOC_SET_THRESHOLD, uint32_t *)
-
 typedef struct
 {
   uint32_t timestamp_lo;
@@ -159,22 +151,6 @@ static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *
 static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *offp)
 {
   int i;
-
-  /* Read data, depending on current mode */
-  switch (dev->mode)
-  {
-  case IOC_MODE_POLLING:
-    pr_info("dev_read: Reading polling data.\n");
-    return 0;
-    break;
-  case IOC_MODE_BUFFER:
-    pr_info("dev_read: Reading shock buffer data.\n");
-    return 0;
-    break;
-  default:
-    pr_info("dev_read: Unknown mode is currently set.\n");
-    return -EINVAL;
-  }
 
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= SIZEOF_BUFFER_DATA_T))
@@ -306,49 +282,6 @@ static irqreturn_t irq_handler(int nr, void *data_ptr)
   return IRQ_HANDLED;
 }
 
-static irqreturn_t irq_handler(int nr, void *data_ptr)
-{
-  struct data *dev = data_ptr;
-  struct siginfo info;
-  struct task_struct *t;
-
-  pr_info("Interrupt occured\n");
-
-  /* Determine which interrupt occured */
-  dev->irqs = ioread32(dev->regs + MEM_OFFSET_BUF_ISR);
-
-  if (dev->irqs_active == 0x1)
-  {
-    dev->irq_count++;
-    pr_info("Received buffer 0 interrupt [Occured %i times so far.]\n", dev->irq_count);
-  }
-  else
-  {
-    /* Another device asserted the shared interrupt line */
-    return IRQ_NONE;
-  }
-
-  /* Reset interrupts (Write '1' to clear) */
-  iowrite32(dev->irqs_active, dev->regs + MEM_OFFSET_BUF_ISR);
-
-  /* Send signal to user space */
-  t = pid_task(find_vpid(dev->pid), PIDTYPE_PID);
-  if (t == NULL)
-  {
-    printk(KERN_ERR "A Task with PID %i does not exist.\n", dev->pid);
-    return IRQ_HANDLED;
-  }
-
-  memset(&info, 0, sizeof(struct siginfo));
-  info.si_signo = SIGNAL_EVENT;
-  info.si_code = SI_QUEUE;
-  info.si_int = 4711;
-
-  send_sig_info(SIGNAL_EVENT, &info, t);
-
-  return IRQ_HANDLED;
-}
-
 /*
  * @brief This function gets executed on fread.
  */
@@ -414,11 +347,6 @@ static long dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
     /* Enable buffer 0 again (it's disabled internally on every interrupt to keep the data valid) */
     iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
 
-    break;
-  case IOC_CMD_SET_THRESHOLD:
-    tmp = copy_from_user(&threshold, (uint32_t *)arg, sizeof(threshold));
-    pr_info("dev_ioctl: Set acceleration threshold for shock detection to %i.\n", threshold);
-    iowrite32(threshold, dev->regs + MEM_OFFSET_SHOCK_THRESHOLD);
     break;
   case IOC_CMD_SET_THRESHOLD:
     tmp = copy_from_user(&threshold, (uint32_t *)arg, sizeof(threshold));
