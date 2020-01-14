@@ -71,7 +71,6 @@ static int dev_read(struct file *filep, char *buf, size_t count,
 
   /* read data from FPGA and store into kernel space buffer */
   dev->buffer.value = ioread16(dev->regs + MEM_OFFSET_DATA);
-
   dev->buffer.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
   dev->buffer.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
 
