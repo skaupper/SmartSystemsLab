@@ -7,7 +7,7 @@
    description=""
    tags=""
    categories="System" />
- <parameter name="bonusData"><![CDATA[bonusData
+ <parameter name="bonusData"><![CDATA[bonusData 
 {
    element HPSPlatform
    {
@@ -1020,10 +1020,10 @@
    version="18.1"
    start="clk_0.clk"
    end="hmi.subsystemmpu9250_clk" />
- <connection kind="clock" version="19.1" start="clk_0.clk" end="hmi.switches_clk" />
+ <connection kind="clock" version="18.1" start="clk_0.clk" end="hmi.switches_clk" />
  <connection
    kind="interrupt"
-   version="19.1"
+   version="18.1"
    start="hps_0.f2h_irq0"
    end="hmi.subsystemmpu9250_irq">
   <parameter name="irqNumber" value="0" />
