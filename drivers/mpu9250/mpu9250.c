@@ -111,8 +111,6 @@ struct data
  */
 static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *offp)
 {
-  unsigned int rdata;
-
   /* check out of bound access */
   if ((*offp < 0) || (*offp >= SIZEOF_POLLING_DATA_T))
     return 0;
@@ -122,26 +120,17 @@ static int read_polling_data(struct data *dev, char *buf, size_t count, loff_t *
     count = SIZEOF_POLLING_DATA_T - *offp;
 
   /* read data from FPGA and store into kernel space buffer */
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_X);
-  dev->polling_data.gyro_x = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Y);
-  dev->polling_data.gyro_y = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Z);
-  dev->polling_data.gyro_z = (rdata & 0x0000FFFF);
+  dev->polling_data.gyro_x = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_X);
+  dev->polling_data.gyro_y = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Y);
+  dev->polling_data.gyro_z = ioread16(dev->regs + MEM_OFFSET_DATA_GYRO_Z);
 
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_X);
-  dev->polling_data.acc_x = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_Y);
-  dev->polling_data.acc_y = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_Z);
-  (dev->polling_data.acc_z = (rdata & 0x0000FFFF));
+  dev->polling_data.acc_x = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_X);
+  dev->polling_data.acc_y = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_Y);
+  dev->polling_data.acc_z = ioread16(dev->regs + MEM_OFFSET_DATA_ACC_Z);
 
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_X);
-  dev->polling_data.mag_x = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_Y);
-  dev->polling_data.mag_y = (rdata & 0x0000FFFF);
-  rdata = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_Z);
-  dev->polling_data.mag_z = (rdata & 0x0000FFFF);
+  dev->polling_data.mag_x = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_X);
+  dev->polling_data.mag_y = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_Y);
+  dev->polling_data.mag_z = ioread16(dev->regs + MEM_OFFSET_DATA_MAG_Z);
 
   dev->polling_data.timestamp_lo = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_LOW);
   dev->polling_data.timestamp_hi = ioread32(dev->regs + MEM_OFFSET_TIMESTAMP_HIGH);
