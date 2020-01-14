@@ -216,7 +216,7 @@ static int read_buffer_data(struct data *dev, char *buf, size_t count, loff_t *o
   if ((*offp + count) >= SIZEOF_BUFFER_DATA_T)
   {
     dev->irqs = 0;
-    /* Enable buffer 0 again (it's cleared internally on every interrupt) */
+    /* Enable buffer 0 again (it's disabled internally on every interrupt to keep the data valid) */
     iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
   }
 
@@ -329,7 +329,7 @@ static long dev_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
      * The `current` variable is defined in linux/sched/signal.h */
     dev->pid = task_pid_nr(current);
     pr_info("dev_ioctl: Set current PID to %i.\n", dev->pid);
-    /* Enable buffer 0 again (it's cleared internally on every interrupt) */
+    /* Enable buffer 0 again (it's disabled internally on every interrupt to keep the data valid) */
     iowrite32(0x1, dev->regs + MEM_OFFSET_BUF_CTRL_STATUS);
 
     break;
