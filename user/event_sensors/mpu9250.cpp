@@ -69,6 +69,9 @@ struct MPU9250EventPOD {
     uint16_t gyro_x[EVENT_PACKETS];
     uint16_t gyro_y[EVENT_PACKETS];
     uint16_t gyro_z[EVENT_PACKETS];
+    uint16_t mag_x[EVENT_PACKETS];
+    uint16_t mag_y[EVENT_PACKETS];
+    uint16_t mag_z[EVENT_PACKETS];
 } __attribute__((packed));
 
 
@@ -133,15 +136,20 @@ static void eventDataReady(int, siginfo_t *, void *) {
             tmp.gyro_x = pod.gyro_x[i];
             tmp.gyro_y = pod.gyro_y[i];
             tmp.gyro_z = pod.gyro_z[i];
+            tmp.mag_x  = pod.mag_x[i];
+            tmp.mag_y  = pod.mag_y[i];
+            tmp.mag_z  = pod.mag_z[i];
 
             data.event = true;
             data.timeStamp = (((uint64_t) pod.timestamp_hi[i]) << 32) | pod.timestamp_lo[i];
             convertAccUnits(tmp, data);
+            convertMagUnits(tmp, data);
             convertGyroUnits(tmp, data);
 
             // std::cout << i << std::endl;
             // std::cout << "Acc         : x: " << std::hex << tmp.acc_x << ", y: " << std::hex << tmp.acc_y << ", z: " << std::hex << tmp.acc_z << std::endl;
             // std::cout << "Gyro        : x: " << std::hex << tmp.gyro_x << ", y: " << std::hex << tmp.gyro_y << ", z: " << std::hex << tmp.gyro_z << std::endl;
+            // std::cout << "Mag         : x: " << std::hex << tmp.mag_x << ", y: " << std::hex << tmp.mag_y << ", z: " << std::hex << tmp.mag_z << std::endl;
             // std::cout << "Timestamp lo: " << pod.timestamp_lo[i] << std::endl;
             // std::cout << "Timestamp hi: " << pod.timestamp_hi[i] << std::endl;
             // std::cout << std::endl;
