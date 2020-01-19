@@ -553,9 +553,9 @@ begin
                   nxR.ram.ctrl.wAddr <= reg.ram.ctrl.wAddr + 1;
                   nxR.ram.wState     <= Idle;
 
-                  if abs(signed(reg.shadowReg.data(3))) > signed(reg.shockLevel) OR
-                     abs(signed(reg.shadowReg.data(4))) > signed(reg.shockLevel) OR
-                     abs(signed(reg.shadowReg.data(5))) > signed(reg.shockLevel) then
+                  if (abs(signed(reg.shadowReg.data(3))) > signed(reg.shockLevel)) OR
+                     (abs(signed(reg.shadowReg.data(4))) > signed(reg.shockLevel)) OR
+                     (abs(signed(reg.shadowReg.data(5))) > signed(reg.shockLevel)) then
 
                      nxR.ram.state      <= RecShock;
                      nxR.ram.ctrl.rAddr <= reg.ram.ctrl.wAddr - gPreShockCount;
