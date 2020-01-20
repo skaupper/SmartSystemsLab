@@ -144,11 +144,37 @@ std::optional<std::string> getTrustStore(const std::string &certPath)
 }
 
 
-int main() {
+int main(int argc, char *argv[]) {
     static const std::string SERVER_URI = "ssl://193.170.192.224:8883";
     static const std::string CLIENT_ID  = "event_sensors";
+    static const int DEFAULT_THRESHOLD = 12000;
+
+    //
+    // Parse CLI arguments
+    //
+    int threshold = DEFAULT_THRESHOLD;
+
+    if (argc > 2) {
+        std::cerr << "Usage: " << argv[0] << " [<event_threshold>]" << std::endl;
+        return -1;
+    } else if (argc == 2) {
+        try {
+            size_t idx = 0;
+            threshold = std::stoi(argv[1], &idx);
+
+            if (idx < strlen(argv[1])) {
+                throw std::invalid_argument(argv[1]);
+            }
+        } catch (const std::invalid_argument &ex) {
+            std::cerr << "Argument '" << argv[1] << "' cannot be parsed as an integer" << std::endl;
+            return -1;
+        }
+    }
 
 
+    //
+    // Check operation mode
+    //
 #ifndef NO_SENSORS
     std::cout << "Operation mode: actual sensors" << std::endl;
 
@@ -161,6 +187,7 @@ int main() {
 #else
     std::cout << "Operation mode: dummy data" << std::endl;
 #endif
+
 
     //
     // Setup MQTT client
@@ -183,7 +210,7 @@ int main() {
     // Setup sensors
     //
     HDC1000 hdc1000(50);
-    MPU9250 mpu9250(2);
+    MPU9250 mpu9250(2, threshold);
     APDS9301 apds9301(2.5);
 
     // start a thread for each sensor

@@ -22,12 +22,15 @@ struct MPU9250Data : public Serializable {
 
 class MPU9250 : public StreamingSensor<MPU9250Data> {
 public:
-    MPU9250(double);
+    MPU9250(double, int);
 
     std::string getTopic() const override;
 
 protected:
     std::optional<MPU9250Data> doPoll() override;
+
+private:
+    int threshold;
 };
 
 #endif  // MPU9250_H
