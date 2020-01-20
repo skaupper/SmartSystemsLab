@@ -184,7 +184,7 @@ std::string MPU9250::getTopic() const {
     return TOPIC_NAME;
 }
 
-MPU9250::MPU9250(double frequency) : StreamingSensor(frequency) {
+MPU9250::MPU9250(double frequency, int threshold) : StreamingSensor(frequency), threshold(threshold) {
     fSetEventQueue = std::bind(&MPU9250::setEventQueue, this, _1);
 
 
@@ -201,7 +201,6 @@ MPU9250::MPU9250(double frequency) : StreamingSensor(frequency) {
         return;
     }
 
-    uint32_t threshold = 10000;
     if (ioctl(fileno(fd), IOC_CMD_SET_THRESHOLD, &threshold) < 0) {
         std::cerr << "Failed to set threshold: " << strerror(errno) << std::endl;
         fclose(fd);
